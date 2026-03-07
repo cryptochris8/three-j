@@ -1,0 +1,54 @@
+import { useGameStore } from '@/stores/useGameStore'
+
+export function PauseMenu() {
+  const setGamePhase = useGameStore((s) => s.setGamePhase)
+  const returnToHub = useGameStore((s) => s.returnToHub)
+
+  return (
+    <div style={{
+      position: 'absolute',
+      inset: 0,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: 'rgba(0,0,0,0.75)',
+      backdropFilter: 'blur(8px)',
+      zIndex: 90,
+    }}>
+      <h2 style={{ fontSize: '2.5rem', fontWeight: 700, marginBottom: '2rem' }}>
+        Paused
+      </h2>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '220px' }}>
+        <button
+          onClick={() => setGamePhase('playing')}
+          style={{
+            padding: '0.8rem',
+            fontSize: '1.1rem',
+            fontWeight: 600,
+            borderRadius: '12px',
+            background: 'linear-gradient(135deg, #FF6B35, #F7C948)',
+            color: '#1A1A2E',
+          }}
+        >
+          Resume
+        </button>
+        <button
+          onClick={returnToHub}
+          style={{
+            padding: '0.8rem',
+            fontSize: '1.1rem',
+            fontWeight: 600,
+            borderRadius: '12px',
+            background: 'rgba(255,255,255,0.1)',
+            color: '#fff',
+            border: '2px solid rgba(255,255,255,0.2)',
+          }}
+        >
+          Quit to Hub
+        </button>
+      </div>
+    </div>
+  )
+}
