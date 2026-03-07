@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import { Text, Environment, ContactShadows, Html } from '@react-three/drei'
+import { Text, ContactShadows, Html } from '@react-three/drei'
+import { Skybox } from '@/components/Skybox'
 import { useGameStore } from '@/stores/useGameStore'
 import { useProgressStore } from '@/stores/useProgressStore'
 import { usePlayerStore } from '@/stores/usePlayerStore'
@@ -22,12 +23,12 @@ function Portal({ game, label, color, position, unlockLabel }: typeof PORTALS[nu
   const isUnlocked = useProgressStore((s) => s.isGameUnlocked(game))
   const { gl } = useThree()
 
-  useFrame((_, delta) => {
+  useFrame((state, delta) => {
     if (meshRef.current) {
       meshRef.current.rotation.y += delta * 0.5
     }
     if (glowRef.current) {
-      const scale = 1 + Math.sin(Date.now() * 0.003) * 0.1
+      const scale = 1 + Math.sin(state.clock.elapsedTime * 3) * 0.1
       glowRef.current.scale.setScalar(scale)
     }
   })
@@ -279,7 +280,7 @@ export function Hub() {
         shadow-camera-top={20}
         shadow-camera-bottom={-20}
       />
-      <Environment preset="park" />
+      <Skybox scene="hub" />
       <fog attach="fog" args={['#87CEEB', 30, 60]} />
 
       <HubGround />

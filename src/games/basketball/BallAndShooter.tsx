@@ -31,9 +31,9 @@ export function BallAndShooter() {
   }, [camera])
 
   // Power meter oscillation while charging
-  useFrame(() => {
+  useFrame((state) => {
     if (isPowerCharging) {
-      const t = Date.now() * 0.003
+      const t = state.clock.elapsedTime * 3
       const normalizedPower = (Math.sin(t) + 1) / 2
       setPower(minPower + normalizedPower * (maxPower - minPower))
     }
@@ -60,13 +60,42 @@ export function BallAndShooter() {
       launchBall(shotPower, shotAngle)
     }
 
+    // Keyboard controls: Arrow keys to aim, Space to charge/shoot
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        e.preventDefault()
+        if (!isBallFlying && shotsRemaining > 0 && !isPowerCharging) {
+          startCharging()
+        }
+      }
+      if (e.code === 'ArrowLeft' && !isBallFlying) {
+        const current = useBasketball.getState().aimAngle
+        useBasketball.getState().setAimAngle(Math.max(-BASKETBALL_CONFIG.maxAimAngle, current - 2))
+      }
+      if (e.code === 'ArrowRight' && !isBallFlying) {
+        const current = useBasketball.getState().aimAngle
+        useBasketball.getState().setAimAngle(Math.min(BASKETBALL_CONFIG.maxAimAngle, current + 2))
+      }
+    }
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space' && isPowerCharging) {
+        const { power: shotPower, aimAngle: shotAngle } = shoot()
+        launchBall(shotPower, shotAngle)
+      }
+    }
+
     window.addEventListener('mousemove', handleMouseMove)
     window.addEventListener('mousedown', handleMouseDown)
     window.addEventListener('mouseup', handleMouseUp)
+    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('keyup', handleKeyUp)
     return () => {
       window.removeEventListener('mousemove', handleMouseMove)
       window.removeEventListener('mousedown', handleMouseDown)
       window.removeEventListener('mouseup', handleMouseUp)
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keyup', handleKeyUp)
     }
   }, [isBallFlying, isPowerCharging, shotsRemaining, startCharging, shoot])
 
@@ -131,7 +160,7 @@ export function BallAndShooter() {
         colliders="ball"
         mass={BASKETBALL_CONFIG.ballMass}
         restitution={BASKETBALL_CONFIG.ballRestitution}
-        linearDamping={0.3}
+        linearDamping={0.1}
         position={ballStartPosition}
         name="basketball"
       >

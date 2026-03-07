@@ -1,18 +1,17 @@
-import { useEffect, useCallback, useState, useRef } from 'react'
+import { useEffect, useCallback, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import { Environment } from '@react-three/drei'
+import { Skybox } from '@/components/Skybox'
 import { RigidBody, type RapierRigidBody } from '@react-three/rapier'
 import { useGameStore } from '@/stores/useGameStore'
 import { useScoreStore } from '@/stores/useScoreStore'
-import { useEducationStore } from '@/stores/useEducationStore'
-import { usePlayerStore } from '@/stores/usePlayerStore'
 import { PhysicsProvider } from '@/core/PhysicsProvider'
 import { Course } from '@/games/minigolf/Course'
 import { useMinigolf } from '@/games/minigolf/useMinigolf'
 import { MINIGOLF_CONFIG, COURSES } from '@/games/minigolf/config'
 import { ScorePopup } from '@/components/ScorePopup'
 import { Confetti } from '@/components/Confetti'
-import { getQuestionEngine } from '@/education/QuestionEngine'
+import { useGameSession } from '@/hooks/useGameSession'
+import { useGameKeyboard } from '@/hooks/useGameKeyboard'
 
 function GolfBall() {
   const ballRef = useRef<RapierRigidBody>(null)
@@ -88,13 +87,41 @@ function GolfBall() {
       }
     }
 
+    // Keyboard controls: Arrow keys for direction, Space to putt
+    const kbDir = { x: 0, z: 0 }
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (phase !== 'aiming') return
+      if (e.code === 'ArrowLeft') kbDir.x = -1
+      if (e.code === 'ArrowRight') kbDir.x = 1
+      if (e.code === 'ArrowUp') kbDir.z = 1
+      if (e.code === 'ArrowDown') kbDir.z = -1
+      if (e.code === 'Space') {
+        e.preventDefault()
+        const dx = kbDir.x || 0
+        const dz = kbDir.z || 1 // default forward
+        const len = Math.sqrt(dx * dx + dz * dz) || 1
+        const power = MINIGOLF_CONFIG.maxPuttPower * 0.5
+        if (ballRef.current) {
+          ballRef.current.setLinvel({
+            x: (dx / len) * power,
+            y: 0,
+            z: -(dz / len) * power,
+          }, true)
+          useMinigolf.getState().startDrag(0, 0)
+          useMinigolf.getState().releasePutt()
+        }
+      }
+    }
+
     window.addEventListener('mousedown', handleMouseDown)
     window.addEventListener('mousemove', handleMouseMove)
     window.addEventListener('mouseup', handleMouseUp)
+    window.addEventListener('keydown', handleKeyDown)
     return () => {
       window.removeEventListener('mousedown', handleMouseDown)
       window.removeEventListener('mousemove', handleMouseMove)
       window.removeEventListener('mouseup', handleMouseUp)
+      window.removeEventListener('keydown', handleKeyDown)
     }
   }, [phase, isDragging, startDrag, updateDrag, releasePutt])
 
@@ -119,12 +146,7 @@ function GolfBall() {
 
 function MinigolfGame() {
   const gamePhase = useGameStore((s) => s.gamePhase)
-  const setGamePhase = useGameStore((s) => s.setGamePhase)
   const addScore = useScoreStore((s) => s.addScore)
-  const resetCurrentScore = useScoreStore((s) => s.resetCurrentScore)
-  const difficulty = useEducationStore((s) => s.difficulty)
-  const answeredIds = useEducationStore((s) => s.answeredIds)
-  const activeProfile = usePlayerStore((s) => s.getActiveProfile())
 
   const golfPhase = useMinigolf((s) => s.phase)
   const currentHole = useMinigolf((s) => s.currentHole)
@@ -132,17 +154,14 @@ function MinigolfGame() {
   const ballHoled = useMinigolf((s) => s.ballHoled)
   const resetGame = useMinigolf((s) => s.resetGame)
 
-  const [popups, setPopups] = useState<{ id: number; text: string; position: [number, number, number]; color: string }[]>([])
-  const [showConfetti, setShowConfetti] = useState(false)
-  const popupId = useRef(0)
+  const { popups, showConfetti, addPopup, removePopup, triggerConfetti, triggerQuiz, initGame, endGame } = useGameSession()
+  useGameKeyboard()
 
   const holeConfig = COURSES[currentHole]
 
   // Initialize
   useEffect(() => {
-    resetCurrentScore()
-    resetGame()
-    setGamePhase('playing')
+    initGame(resetGame)
   }, [])
 
   // Handle ball in hole
@@ -160,8 +179,7 @@ function MinigolfGame() {
     if (strokesTaken === 1) {
       text = 'HOLE IN ONE!'
       color = '#FFD700'
-      setShowConfetti(true)
-      setTimeout(() => setShowConfetti(false), 3000)
+      triggerConfetti()
     } else if (strokesTaken <= par - 1) {
       text = 'Birdie!'
       color = '#2ECC71'
@@ -173,42 +191,31 @@ function MinigolfGame() {
       color = '#FF6B35'
     }
 
-    const id = ++popupId.current
-    setPopups((prev) => [...prev, { id, text, position: [holeConfig.holePosition[0], 1, holeConfig.holePosition[2]], color }])
-  }, [ballHoled, holeConfig])
+    addPopup(text, [holeConfig.holePosition[0], 1, holeConfig.holePosition[2]], color)
+  }, [ballHoled, holeConfig, triggerConfetti, addPopup])
 
   // Handle water hazard
   const handleWaterHazard = useCallback(() => {
-    // Penalty stroke is handled by the ball resetting
-    const id = ++popupId.current
-    setPopups((prev) => [...prev, { id, text: 'Water! +1 stroke', position: [0, 1, 0], color: '#1E90FF' }])
-  }, [])
+    addPopup('Water! +1 stroke', [0, 1, 0], '#1E90FF')
+  }, [addPopup])
 
   // Handle holed -> quiz or next hole
   useEffect(() => {
     if (golfPhase === 'holed') {
       setTimeout(() => {
-        // Quiz after each hole
-        const engine = getQuestionEngine(answeredIds)
-        const question = engine.getQuestion(difficulty, 'trivia', activeProfile?.age ?? 8)
-        useEducationStore.getState().setCurrentQuestion(question)
-        setGamePhase('quiz')
+        triggerQuiz('trivia')
       }, 2000)
     }
-  }, [golfPhase])
+  }, [golfPhase, triggerQuiz])
 
   // Game done
   useEffect(() => {
     if (golfPhase === 'done') {
       // Use total strokes as score (lower is better)
       addScore(totalStrokes)
-      setGamePhase('gameover')
+      endGame()
     }
-  }, [golfPhase, totalStrokes, addScore, setGamePhase])
-
-  const removePopup = useCallback((id: number) => {
-    setPopups((prev) => prev.filter((p) => p.id !== id))
-  }, [])
+  }, [golfPhase, totalStrokes, addScore, endGame])
 
   return (
     <>
@@ -220,7 +227,7 @@ function MinigolfGame() {
         shadow-mapSize-width={2048}
         shadow-mapSize-height={2048}
       />
-      <Environment preset={holeConfig.theme === 'space' ? 'night' : 'park'} />
+      <Skybox scene="minigolf" />
       {holeConfig.theme === 'space' && <color attach="background" args={['#0a0a1e']} />}
       {holeConfig.theme === 'underwater' && <fog attach="fog" args={['#1a5276', 5, 20]} />}
 

@@ -13,11 +13,12 @@ interface ScorePopupProps {
 export function ScorePopup({ text, position, color = '#F7C948', onComplete }: ScorePopupProps) {
   const groupRef = useRef<Group>(null)
   const [opacity, setOpacity] = useState(1)
-  const startTime = useRef(Date.now())
+  const startClock = useRef(-1)
 
-  useFrame(() => {
+  useFrame((state) => {
     if (!groupRef.current) return
-    const elapsed = (Date.now() - startTime.current) / 1000
+    if (startClock.current < 0) startClock.current = state.clock.elapsedTime
+    const elapsed = state.clock.elapsedTime - startClock.current
     groupRef.current.position.y = position[1] + elapsed * 1.5
     const newOpacity = Math.max(0, 1 - elapsed / 1.5)
     setOpacity(newOpacity)

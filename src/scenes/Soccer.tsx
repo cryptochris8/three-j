@@ -1,11 +1,10 @@
-import { useEffect, useCallback, useState, useRef } from 'react'
+import { useEffect, useCallback, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import { Environment } from '@react-three/drei'
+import { Skybox } from '@/components/Skybox'
 import { RigidBody, type RapierRigidBody } from '@react-three/rapier'
 import { useGameStore } from '@/stores/useGameStore'
 import { useScoreStore } from '@/stores/useScoreStore'
 import { useEducationStore } from '@/stores/useEducationStore'
-import { usePlayerStore } from '@/stores/usePlayerStore'
 import { PhysicsProvider } from '@/core/PhysicsProvider'
 import { Field } from '@/games/soccer/Field'
 import { Goal } from '@/games/soccer/Goal'
@@ -14,7 +13,8 @@ import { useSoccer } from '@/games/soccer/useSoccer'
 import { SOCCER_CONFIG } from '@/games/soccer/config'
 import { ScorePopup } from '@/components/ScorePopup'
 import { Confetti } from '@/components/Confetti'
-import { getQuestionEngine } from '@/education/QuestionEngine'
+import { useGameSession } from '@/hooks/useGameSession'
+import { useGameKeyboard } from '@/hooks/useGameKeyboard'
 
 function SoccerBall() {
   const ballRef = useRef<RapierRigidBody>(null)
@@ -35,9 +35,9 @@ function SoccerBall() {
   }, [camera])
 
   // Power charge
-  useFrame(() => {
+  useFrame((state) => {
     if (phase === 'charging') {
-      const t = Date.now() * 0.003
+      const t = state.clock.elapsedTime * 3
       const normalized = (Math.sin(t) + 1) / 2
       setPower(SOCCER_CONFIG.minKickPower + normalized * (SOCCER_CONFIG.maxKickPower - SOCCER_CONFIG.minKickPower))
     }
@@ -90,13 +90,40 @@ function SoccerBall() {
       }
     }
 
+    // Keyboard controls: Arrow keys to aim, Space to charge/kick
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        e.preventDefault()
+        if (phase === 'aiming') startCharging()
+      }
+      if (phase === 'aiming') {
+        const state = useSoccer.getState()
+        const step = 0.3
+        if (e.code === 'ArrowLeft') setAim(state.aimX - step, state.aimY)
+        if (e.code === 'ArrowRight') setAim(state.aimX + step, state.aimY)
+        if (e.code === 'ArrowUp') setAim(state.aimX, Math.min(SOCCER_CONFIG.maxAimAngleY, state.aimY + step))
+        if (e.code === 'ArrowDown') setAim(state.aimX, Math.max(0.3, state.aimY - step))
+      }
+    }
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space' && phase === 'charging') {
+        const { power: p, aimX: ax, aimY: ay } = kick()
+        launchBall(p, ax, ay)
+      }
+    }
+
     window.addEventListener('mousemove', handleMouseMove)
     window.addEventListener('mousedown', handleMouseDown)
     window.addEventListener('mouseup', handleMouseUp)
+    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('keyup', handleKeyUp)
     return () => {
       window.removeEventListener('mousemove', handleMouseMove)
       window.removeEventListener('mousedown', handleMouseDown)
       window.removeEventListener('mouseup', handleMouseUp)
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keyup', handleKeyUp)
     }
   }, [phase, setAim, startCharging, kick])
 
@@ -144,12 +171,8 @@ function SoccerBall() {
 
 function SoccerGame() {
   const gamePhase = useGameStore((s) => s.gamePhase)
-  const setGamePhase = useGameStore((s) => s.setGamePhase)
   const addScore = useScoreStore((s) => s.addScore)
-  const resetCurrentScore = useScoreStore((s) => s.resetCurrentScore)
   const difficulty = useEducationStore((s) => s.difficulty)
-  const answeredIds = useEducationStore((s) => s.answeredIds)
-  const activeProfile = usePlayerStore((s) => s.getActiveProfile())
 
   const {
     phase: soccerPhase,
@@ -163,15 +186,12 @@ function SoccerGame() {
     resetGame,
   } = useSoccer()
 
-  const [popups, setPopups] = useState<{ id: number; text: string; position: [number, number, number]; color: string }[]>([])
-  const [showConfetti, setShowConfetti] = useState(false)
-  const popupId = useRef(0)
+  const { popups, showConfetti, addPopup, removePopup, triggerConfetti, triggerQuiz, initGame, endGame } = useGameSession()
+  useGameKeyboard()
 
   // Initialize
   useEffect(() => {
-    resetCurrentScore()
-    resetGame()
-    setGamePhase('playing')
+    initGame(resetGame)
   }, [])
 
   // Handle goal scored
@@ -189,8 +209,7 @@ function SoccerGame() {
         text = 'GOAL!'
         color = '#2ECC71'
         addScore(1)
-        setShowConfetti(true)
-        setTimeout(() => setShowConfetti(false), 3000)
+        triggerConfetti()
       } else if (lastResult === 'saved') {
         text = 'Saved!'
         color = '#E74C3C'
@@ -203,38 +222,29 @@ function SoccerGame() {
       const opScored = simulateOpponent()
       if (opScored) {
         setTimeout(() => {
-          const id2 = ++popupId.current
-          setPopups((prev) => [...prev, { id: id2, text: 'Opponent scores!', position: [0, 1, -5], color: '#E74C3C' }])
+          addPopup('Opponent scores!', [0, 1, -5], '#E74C3C')
         }, 1500)
       }
 
-      const id = ++popupId.current
-      setPopups((prev) => [...prev, { id, text, position: [0, 3, -5], color }])
+      addPopup(text, [0, 3, -5], color)
 
       // Quiz every 2nd kick
       setTimeout(() => {
         if (currentKick % 2 === 0 && currentKick < SOCCER_CONFIG.totalKicks) {
-          const engine = getQuestionEngine(answeredIds)
-          const question = engine.getQuestion(difficulty, undefined, activeProfile?.age ?? 8)
-          useEducationStore.getState().setCurrentQuestion(question)
-          setGamePhase('quiz')
+          triggerQuiz()
         } else {
           nextKick()
         }
       }, 2500)
     }
-  }, [soccerPhase, lastResult, addScore, simulateOpponent, currentKick])
+  }, [soccerPhase, lastResult, addScore, simulateOpponent, currentKick, triggerConfetti, addPopup, triggerQuiz, nextKick])
 
   // Game over
   useEffect(() => {
     if (soccerPhase === 'done') {
-      setGamePhase('gameover')
+      endGame()
     }
-  }, [soccerPhase, setGamePhase])
-
-  const removePopup = useCallback((id: number) => {
-    setPopups((prev) => prev.filter((p) => p.id !== id))
-  }, [])
+  }, [soccerPhase, endGame])
 
   return (
     <>
@@ -246,7 +256,7 @@ function SoccerGame() {
         shadow-mapSize-width={2048}
         shadow-mapSize-height={2048}
       />
-      <Environment preset="park" />
+      <Skybox scene="soccer" />
       <fog attach="fog" args={['#87CEEB', 30, 60]} />
 
       <PhysicsProvider paused={gamePhase !== 'playing'}>

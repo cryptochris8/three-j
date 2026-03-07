@@ -38,10 +38,13 @@ export function MinigolfOverlay() {
     setGamePhase('playing')
   }, [resetCurrentScore, resetGame, setGamePhase])
 
-  const handleQuizComplete = useCallback(() => {
+  const setLastQuizResult = useGameStore((s) => s.setLastQuizResult)
+
+  const handleQuizComplete = useCallback((correct: boolean) => {
+    setLastQuizResult(correct)
     nextHole()
     setGamePhase('playing')
-  }, [nextHole, setGamePhase])
+  }, [setLastQuizResult, nextHole, setGamePhase])
 
   return (
     <>

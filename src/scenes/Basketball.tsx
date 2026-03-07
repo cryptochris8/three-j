@@ -1,9 +1,7 @@
-import { useEffect, useCallback, useState, useRef } from 'react'
-import { Environment } from '@react-three/drei'
+import { useEffect, useCallback, useRef } from 'react'
+import { Skybox } from '@/components/Skybox'
 import { useGameStore } from '@/stores/useGameStore'
 import { useScoreStore } from '@/stores/useScoreStore'
-import { useEducationStore } from '@/stores/useEducationStore'
-import { usePlayerStore } from '@/stores/usePlayerStore'
 import { PhysicsProvider } from '@/core/PhysicsProvider'
 import { Court } from '@/games/basketball/Court'
 import { Hoop } from '@/games/basketball/Hoop'
@@ -12,7 +10,8 @@ import { useBasketball } from '@/games/basketball/useBasketball'
 import { BASKETBALL_CONFIG } from '@/games/basketball/config'
 import { ScorePopup } from '@/components/ScorePopup'
 import { Confetti } from '@/components/Confetti'
-import { getQuestionEngine } from '@/education/QuestionEngine'
+import { useGameSession } from '@/hooks/useGameSession'
+import { useGameKeyboard } from '@/hooks/useGameKeyboard'
 
 // Shared state for the UI overlay (read by BasketballUI outside Canvas)
 import { create } from 'zustand'
@@ -29,15 +28,9 @@ export const useBasketballUI = create<BasketballUIState>((set) => ({
 
 function BasketballGame() {
   const gamePhase = useGameStore((s) => s.gamePhase)
-  const setGamePhase = useGameStore((s) => s.setGamePhase)
   const addScore = useScoreStore((s) => s.addScore)
   const incrementStreak = useScoreStore((s) => s.incrementStreak)
-  const resetCurrentScore = useScoreStore((s) => s.resetCurrentScore)
   const currentStreak = useScoreStore((s) => s.currentStreak)
-
-  const difficulty = useEducationStore((s) => s.difficulty)
-  const answeredIds = useEducationStore((s) => s.answeredIds)
-  const activeProfile = usePlayerStore((s) => s.getActiveProfile())
 
   const hasPowerShot = useBasketballUI((s) => s.hasPowerShot)
   const setHasPowerShot = useBasketballUI((s) => s.setHasPowerShot)
@@ -52,18 +45,17 @@ function BasketballGame() {
     resetGame,
   } = useBasketball()
 
-  const [popups, setPopups] = useState<{ id: number; text: string; position: [number, number, number]; color: string }[]>([])
-  const [showConfetti, setShowConfetti] = useState(false)
-  const popupId = useRef(0)
+  const { popups, showConfetti, addPopup, removePopup, triggerConfetti, triggerQuiz, initGame, endGame } = useGameSession()
+  useGameKeyboard()
   const shotCount = useRef(0)
 
   // Initialize game
   useEffect(() => {
-    resetCurrentScore()
-    resetGame()
-    shotCount.current = 0
-    setHasPowerShot(false)
-    setGamePhase('playing')
+    initGame(() => {
+      resetGame()
+      shotCount.current = 0
+      setHasPowerShot(false)
+    })
   }, [])
 
   // Timer
@@ -72,18 +64,18 @@ function BasketballGame() {
     const interval = setInterval(() => {
       const expired = decrementTime()
       if (expired) {
-        setGamePhase('gameover')
+        endGame()
       }
     }, 1000)
     return () => clearInterval(interval)
-  }, [gamePhase, decrementTime, setGamePhase])
+  }, [gamePhase, decrementTime, endGame])
 
   // Check game over on shots
   useEffect(() => {
     if (shotsRemaining <= 0 && !isBallFlying && gamePhase === 'playing') {
-      setTimeout(() => setGamePhase('gameover'), 1500)
+      setTimeout(() => endGame(), 1500)
     }
-  }, [shotsRemaining, isBallFlying, gamePhase, setGamePhase])
+  }, [shotsRemaining, isBallFlying, gamePhase, endGame])
 
   // Track shots for quiz trigger
   useEffect(() => {
@@ -92,13 +84,10 @@ function BasketballGame() {
     if (currentShot > 0 && currentShot % 3 === 0 && gamePhase === 'playing' && !isBallFlying) {
       if (currentShot !== shotCount.current) {
         shotCount.current = currentShot
-        const engine = getQuestionEngine(answeredIds)
-        const question = engine.getQuestion(difficulty, undefined, activeProfile?.age ?? 8)
-        useEducationStore.getState().setCurrentQuestion(question)
-        setGamePhase('quiz')
+        triggerQuiz()
       }
     }
-  }, [shotsRemaining, gamePhase, isBallFlying, difficulty, answeredIds, activeProfile])
+  }, [shotsRemaining, gamePhase, isBallFlying, triggerQuiz])
 
   const handleScore = useCallback(() => {
     const result = registerScore()
@@ -141,19 +130,13 @@ function BasketballGame() {
       addScore(points)
       incrementStreak()
 
-      const id = ++popupId.current
-      setPopups((prev) => [...prev, { id, text, position: [0, 3.5, -5] as [number, number, number], color }])
+      addPopup(text, [0, 3.5, -5], color)
 
       if (result === 'swish') {
-        setShowConfetti(true)
-        setTimeout(() => setShowConfetti(false), 3000)
+        triggerConfetti()
       }
     }
-  }, [registerScore, addScore, incrementStreak, currentStreak, hasPowerShot, setHasPowerShot])
-
-  const removePopup = useCallback((id: number) => {
-    setPopups((prev) => prev.filter((p) => p.id !== id))
-  }, [])
+  }, [registerScore, addScore, incrementStreak, currentStreak, hasPowerShot, setHasPowerShot, addPopup, triggerConfetti])
 
   return (
     <>
@@ -165,7 +148,7 @@ function BasketballGame() {
         shadow-mapSize-width={2048}
         shadow-mapSize-height={2048}
       />
-      <Environment preset="warehouse" />
+      <Skybox scene="basketball" />
 
       <PhysicsProvider paused={gamePhase !== 'playing'}>
         <Court />

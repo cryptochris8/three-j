@@ -1,9 +1,9 @@
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { RigidBody, CuboidCollider } from '@react-three/rapier'
+import { RigidBody, CuboidCollider, type RapierRigidBody } from '@react-three/rapier'
 import { Text } from '@react-three/drei'
+import { Quaternion, Euler } from 'three'
 import type { HoleConfig } from './config'
-import type { Mesh } from 'three'
 
 interface CourseProps {
   hole: HoleConfig
@@ -12,11 +12,15 @@ interface CourseProps {
 }
 
 function Windmill({ position }: { position: [number, number, number] }) {
-  const bladeRef = useRef<Mesh>(null)
+  const bodyRef = useRef<RapierRigidBody>(null)
+  const angleRef = useRef(0)
+  const quat = useRef(new Quaternion())
 
   useFrame((_, delta) => {
-    if (bladeRef.current) {
-      bladeRef.current.rotation.z += delta * 1.5
+    if (bodyRef.current) {
+      angleRef.current += delta * 1.5
+      quat.current.setFromEuler(new Euler(0, 0, angleRef.current))
+      bodyRef.current.setNextKinematicRotation(quat.current)
     }
   })
 
@@ -31,8 +35,8 @@ function Windmill({ position }: { position: [number, number, number] }) {
       </RigidBody>
 
       {/* Rotating blades - kinematic for collision */}
-      <RigidBody type="kinematicPosition" colliders="cuboid">
-        <mesh ref={bladeRef} position={[0, 0.35, 0]} castShadow>
+      <RigidBody ref={bodyRef} type="kinematicPosition" colliders="cuboid" position={[0, 0.35, 0]}>
+        <mesh castShadow>
           <boxGeometry args={[1, 0.08, 0.05]} />
           <meshStandardMaterial color="#E74C3C" />
         </mesh>

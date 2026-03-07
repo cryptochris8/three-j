@@ -1,6 +1,7 @@
 import { useRef, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
+import { useReducedMotion } from '@/hooks/useReducedMotion'
 
 interface ConfettiProps {
   position: [number, number, number]
@@ -8,8 +9,10 @@ interface ConfettiProps {
 }
 
 export function Confetti({ position, count = 50 }: ConfettiProps) {
+  const reducedMotion = useReducedMotion()
+  if (reducedMotion) return null  // Skip confetti entirely for reduced motion
   const meshRef = useRef<THREE.InstancedMesh>(null)
-  const startTime = useRef(Date.now())
+  const startClock = useRef(-1)
 
   const particles = useMemo(() => {
     return Array.from({ length: count }, () => ({
@@ -31,9 +34,10 @@ export function Confetti({ position, count = 50 }: ConfettiProps) {
 
   const dummy = useMemo(() => new THREE.Object3D(), [])
 
-  useFrame(() => {
+  useFrame((state) => {
     if (!meshRef.current) return
-    const elapsed = (Date.now() - startTime.current) / 1000
+    if (startClock.current < 0) startClock.current = state.clock.elapsedTime
+    const elapsed = state.clock.elapsedTime - startClock.current
     if (elapsed > 3) return
 
     particles.forEach((p, i) => {

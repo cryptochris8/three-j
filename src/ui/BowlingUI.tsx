@@ -30,10 +30,13 @@ export function BowlingOverlay() {
     setGamePhase('playing')
   }, [resetCurrentScore, resetGame, setGamePhase])
 
-  const handleQuizComplete = useCallback(() => {
+  const setLastQuizResult = useGameStore((s) => s.setLastQuizResult)
+
+  const handleQuizComplete = useCallback((correct: boolean) => {
+    setLastQuizResult(correct)
     nextFrame()
     setGamePhase('playing')
-  }, [nextFrame, setGamePhase])
+  }, [setLastQuizResult, nextFrame, setGamePhase])
 
   return (
     <>

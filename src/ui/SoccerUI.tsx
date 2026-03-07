@@ -30,13 +30,16 @@ export function SoccerOverlay() {
     setGamePhase('playing')
   }, [resetCurrentScore, resetGame, setGamePhase])
 
+  const setLastQuizResult = useGameStore((s) => s.setLastQuizResult)
+
   const handleQuizComplete = useCallback((correct: boolean) => {
     if (correct) {
       setKeeperSlowed(true)
     }
+    setLastQuizResult(correct)
     nextKick()
     setGamePhase('playing')
-  }, [setKeeperSlowed, nextKick, setGamePhase])
+  }, [setKeeperSlowed, setLastQuizResult, nextKick, setGamePhase])
 
   return (
     <>

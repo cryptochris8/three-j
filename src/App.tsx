@@ -1,52 +1,27 @@
 import { Suspense } from 'react'
 import { GameCanvas } from '@/core/GameCanvas'
 import { useGameStore } from '@/stores/useGameStore'
+import { useAudioSync } from '@/hooks/useAudioSync'
 import { MainMenu } from '@/ui/MainMenu'
 import { PauseMenu } from '@/ui/PauseMenu'
-import { BasketballOverlay } from '@/ui/BasketballUI'
-import { SoccerOverlay } from '@/ui/SoccerUI'
-import { BowlingOverlay } from '@/ui/BowlingUI'
-import { MinigolfOverlay } from '@/ui/MinigolfUI'
-import { Hub } from '@/scenes/Hub'
-import { Basketball } from '@/scenes/Basketball'
-import { Soccer } from '@/scenes/Soccer'
-import { Bowling } from '@/scenes/Bowling'
-import { MiniGolf } from '@/scenes/MiniGolf'
+import { TutorialOverlay } from '@/ui/TutorialOverlay'
+import { HomeButton } from '@/ui/HomeButton'
+import { GAME_REGISTRY } from '@/core/gameRegistry'
 
 function SceneContent() {
   const currentScene = useGameStore((s) => s.currentScene)
-
-  switch (currentScene) {
-    case 'hub':
-      return <Hub />
-    case 'basketball':
-      return <Basketball />
-    case 'soccer':
-      return <Soccer />
-    case 'bowling':
-      return <Bowling />
-    case 'minigolf':
-      return <MiniGolf />
-    default:
-      return null
-  }
+  const entry = GAME_REGISTRY[currentScene]
+  if (!entry) return null
+  const SceneComponent = entry.scene
+  return <SceneComponent />
 }
 
 function GameOverlay() {
   const currentScene = useGameStore((s) => s.currentScene)
-
-  switch (currentScene) {
-    case 'basketball':
-      return <BasketballOverlay />
-    case 'soccer':
-      return <SoccerOverlay />
-    case 'bowling':
-      return <BowlingOverlay />
-    case 'minigolf':
-      return <MinigolfOverlay />
-    default:
-      return null
-  }
+  const entry = GAME_REGISTRY[currentScene]
+  if (!entry?.overlay) return null
+  const OverlayComponent = entry.overlay
+  return <OverlayComponent />
 }
 
 function LoadingScreen() {
@@ -68,6 +43,7 @@ function LoadingScreen() {
 }
 
 export function App() {
+  useAudioSync()
   const currentScene = useGameStore((s) => s.currentScene)
   const gamePhase = useGameStore((s) => s.gamePhase)
   const isLoading = useGameStore((s) => s.isLoading)
@@ -92,9 +68,14 @@ export function App() {
           }}>
             <GameOverlay />
           </div>
+          {/* Home button always visible when not on menu */}
+          <HomeButton />
         </>
       )}
 
+      {gamePhase === 'playing' && currentScene !== 'hub' && currentScene !== 'menu' && (
+        <TutorialOverlay game={currentScene} />
+      )}
       {gamePhase === 'paused' && <PauseMenu />}
       {isLoading && <LoadingScreen />}
     </>

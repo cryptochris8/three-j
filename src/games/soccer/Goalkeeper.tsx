@@ -61,7 +61,7 @@ export function Goalkeeper({ difficulty, ballAimX, ballAimY, isBallKicked, isSlo
     }
   }, [isBallKicked, ballAimX, ballAimY, keeperSettings, isSlowed])
 
-  useFrame((_, delta) => {
+  useFrame((state, delta) => {
     if (!bodyRef.current) return
     const pos = bodyRef.current.translation()
 
@@ -81,7 +81,7 @@ export function Goalkeeper({ difficulty, ballAimX, ballAimY, isBallKicked, isSlo
       }
     } else if (!isBallKicked) {
       // Idle sway
-      const sway = Math.sin(Date.now() * 0.002) * 0.3
+      const sway = Math.sin(state.clock.elapsedTime * 2) * 0.3
       bodyRef.current.setTranslation({
         x: sway,
         y: pos.y,

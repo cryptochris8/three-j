@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useEducationStore } from '@/stores/useEducationStore'
 import { usePlayerStore } from '@/stores/usePlayerStore'
+import { audioManager } from '@/core/AudioManager'
 import { TIMING } from '@/core/constants'
 import type { Question } from '@/types'
 
@@ -13,6 +14,7 @@ export function QuizModal({ question, onComplete }: QuizModalProps) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
   const [showResult, setShowResult] = useState(false)
   const [timeLeft, setTimeLeft] = useState<number>(TIMING.quizTimeSeconds)
+  const modalRef = useRef<HTMLDivElement>(null)
   const answerCorrect = useEducationStore((s) => s.answerCorrect)
   const answerWrong = useEducationStore((s) => s.answerWrong)
   const addCoins = usePlayerStore((s) => s.addCoins)
@@ -25,12 +27,23 @@ export function QuizModal({ question, onComplete }: QuizModalProps) {
     const correct = index === question.correctIndex
     if (correct) {
       answerCorrect(question.id)
-      addCoins(correct ? 5 : 0)
+      addCoins(5)
+      audioManager.play('correct')
     } else {
       answerWrong(question.id)
+      audioManager.play('wrong')
     }
 
-    setTimeout(() => onComplete(correct), 2000)
+    // Trigger CSS animation on the modal
+    const el = modalRef.current
+    if (el) {
+      el.classList.remove('quiz-modal-correct', 'quiz-modal-wrong')
+      // Force reflow so re-adding the class restarts the animation
+      void el.offsetWidth
+      el.classList.add(correct ? 'quiz-modal-correct' : 'quiz-modal-wrong')
+    }
+
+    setTimeout(() => onComplete(correct), 3000)
   }, [showResult, question, answerCorrect, answerWrong, addCoins, onComplete])
 
   useEffect(() => {
@@ -55,33 +68,72 @@ export function QuizModal({ question, onComplete }: QuizModalProps) {
       background: 'rgba(0,0,0,0.8)',
       backdropFilter: 'blur(10px)',
       zIndex: 95,
+      pointerEvents: 'auto',
     }}>
-      <div style={{
+      <div
+        ref={modalRef}
+        style={{
         background: 'linear-gradient(135deg, #1A1A2E, #16213E)',
         borderRadius: '24px',
         padding: '2rem',
         maxWidth: '500px',
         width: '90%',
-        border: '2px solid rgba(255,255,255,0.1)',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+        border: showResult
+          ? `3px solid ${isCorrect ? '#2ECC71' : '#E74C3C'}`
+          : '2px solid rgba(255,255,255,0.1)',
+        boxShadow: showResult
+          ? `0 20px 60px ${isCorrect ? 'rgba(46,204,113,0.3)' : 'rgba(231,76,60,0.3)'}`
+          : '0 20px 60px rgba(0,0,0,0.5)',
       }}>
-        {/* Timer */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          marginBottom: '1rem',
-        }}>
-          <span style={{ fontSize: '0.8rem', opacity: 0.6, textTransform: 'uppercase' }}>
-            {question.category}
-          </span>
-          <span style={{
-            fontSize: '1rem',
-            fontWeight: 600,
-            color: timeLeft <= 5 ? '#E74C3C' : '#F7C948',
+        {/* Result banner — shown prominently at top when answered */}
+        {showResult && (
+          <div style={{
+            textAlign: 'center',
+            marginBottom: '1rem',
+            padding: '0.8rem',
+            borderRadius: '16px',
+            background: isCorrect
+              ? 'rgba(46,204,113,0.2)'
+              : 'rgba(231,76,60,0.2)',
           }}>
-            {timeLeft}s
-          </span>
-        </div>
+            <div style={{
+              fontSize: '2.5rem',
+              lineHeight: 1,
+              marginBottom: '0.3rem',
+            }}>
+              {isCorrect ? '\u2714' : '\u2718'}
+            </div>
+            <div style={{
+              fontSize: '1.4rem',
+              fontWeight: 700,
+              color: isCorrect ? '#2ECC71' : '#E74C3C',
+            }}>
+              {isCorrect ? (
+                <span>Correct! <span className="coin-bounce" style={{ display: 'inline-block' }}>+5 Coins</span></span>
+              ) : 'Incorrect'}
+            </div>
+          </div>
+        )}
+
+        {/* Timer */}
+        {!showResult && (
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            marginBottom: '1rem',
+          }}>
+            <span style={{ fontSize: '0.8rem', opacity: 0.6, textTransform: 'uppercase' }}>
+              {question.category}
+            </span>
+            <span style={{
+              fontSize: '1rem',
+              fontWeight: 600,
+              color: timeLeft <= 5 ? '#E74C3C' : '#F7C948',
+            }}>
+              {timeLeft}s
+            </span>
+          </div>
+        )}
 
         {/* Question */}
         <h3 style={{
@@ -99,13 +151,16 @@ export function QuizModal({ question, onComplete }: QuizModalProps) {
           {question.options.map((option, i) => {
             let bg = 'rgba(255,255,255,0.08)'
             let border = '2px solid rgba(255,255,255,0.12)'
+            let label = ''
             if (showResult) {
               if (i === question.correctIndex) {
                 bg = 'rgba(46,204,113,0.3)'
-                border = '2px solid #2ECC71'
+                border = '3px solid #2ECC71'
+                label = ' \u2714'
               } else if (i === selectedIndex && !isCorrect) {
                 bg = 'rgba(231,76,60,0.3)'
-                border = '2px solid #E74C3C'
+                border = '3px solid #E74C3C'
+                label = ' \u2718'
               }
             } else if (i === selectedIndex) {
               bg = 'rgba(255,107,53,0.3)'
@@ -120,7 +175,7 @@ export function QuizModal({ question, onComplete }: QuizModalProps) {
                 style={{
                   padding: '1rem 1.2rem',
                   fontSize: '1.1rem',
-                  fontWeight: 500,
+                  fontWeight: showResult && i === question.correctIndex ? 700 : 500,
                   borderRadius: '12px',
                   background: bg,
                   color: '#fff',
@@ -129,34 +184,25 @@ export function QuizModal({ question, onComplete }: QuizModalProps) {
                   cursor: showResult ? 'default' : 'pointer',
                 }}
               >
-                {option}
+                {option}{label}
               </button>
             )
           })}
         </div>
 
-        {/* Result feedback */}
-        {showResult && (
+        {/* Explanation for wrong answers */}
+        {showResult && !isCorrect && question.explanation && (
           <div style={{
-            marginTop: '1.2rem',
+            marginTop: '1rem',
             padding: '0.8rem',
             borderRadius: '12px',
-            background: isCorrect ? 'rgba(46,204,113,0.15)' : 'rgba(231,76,60,0.15)',
+            background: 'rgba(255,255,255,0.05)',
             textAlign: 'center',
+            fontSize: '0.9rem',
+            opacity: 0.85,
+            lineHeight: 1.5,
           }}>
-            <div style={{
-              fontSize: '1.1rem',
-              fontWeight: 600,
-              color: isCorrect ? '#2ECC71' : '#E74C3C',
-              marginBottom: '0.3rem',
-            }}>
-              {isCorrect ? 'Correct! +5 Coins' : 'Not quite!'}
-            </div>
-            {!isCorrect && (
-              <div style={{ fontSize: '0.85rem', opacity: 0.8 }}>
-                {question.explanation}
-              </div>
-            )}
+            {question.explanation}
           </div>
         )}
       </div>

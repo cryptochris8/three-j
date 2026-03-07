@@ -1,9 +1,8 @@
-import { useEffect, useCallback, useState, useRef } from 'react'
-import { Environment, Text } from '@react-three/drei'
+import { useEffect, useCallback, useRef } from 'react'
+import { Text } from '@react-three/drei'
+import { Skybox } from '@/components/Skybox'
 import { useGameStore } from '@/stores/useGameStore'
 import { useScoreStore } from '@/stores/useScoreStore'
-import { useEducationStore } from '@/stores/useEducationStore'
-import { usePlayerStore } from '@/stores/usePlayerStore'
 import { PhysicsProvider } from '@/core/PhysicsProvider'
 import { Lane } from '@/games/bowling/Lane'
 import { Pins, type PinsHandle } from '@/games/bowling/Pins'
@@ -12,16 +11,14 @@ import { useBowling } from '@/games/bowling/useBowling'
 import { BOWLING_CONFIG } from '@/games/bowling/config'
 import { ScorePopup } from '@/components/ScorePopup'
 import { Confetti } from '@/components/Confetti'
-import { getQuestionEngine } from '@/education/QuestionEngine'
+import { useGameSession } from '@/hooks/useGameSession'
+import { useGameKeyboard } from '@/hooks/useGameKeyboard'
+import { useEducationStore } from '@/stores/useEducationStore'
 
 function BowlingGame() {
   const gamePhase = useGameStore((s) => s.gamePhase)
-  const setGamePhase = useGameStore((s) => s.setGamePhase)
   const addScore = useScoreStore((s) => s.addScore)
-  const resetCurrentScore = useScoreStore((s) => s.resetCurrentScore)
   const difficulty = useEducationStore((s) => s.difficulty)
-  const answeredIds = useEducationStore((s) => s.answeredIds)
-  const activeProfile = usePlayerStore((s) => s.getActiveProfile())
   const {
     phase: bowlingPhase,
     currentFrame,
@@ -34,16 +31,13 @@ function BowlingGame() {
     resetGame,
   } = useBowling()
 
+  const { popups, showConfetti, addPopup, removePopup, triggerConfetti, triggerQuiz, initGame, endGame } = useGameSession()
+  useGameKeyboard()
   const pinsRef = useRef<PinsHandle>(null)
-  const [popups, setPopups] = useState<{ id: number; text: string; position: [number, number, number]; color: string }[]>([])
-  const [showConfetti, setShowConfetti] = useState(false)
-  const popupId = useRef(0)
 
   // Initialize
   useEffect(() => {
-    resetCurrentScore()
-    resetGame()
-    setGamePhase('playing')
+    initGame(resetGame)
   }, [])
 
   const handleBallStopped = useCallback(() => {
@@ -68,8 +62,7 @@ function BowlingGame() {
       if (isStrike) {
         text = 'STRIKE!'
         color = '#2ECC71'
-        setShowConfetti(true)
-        setTimeout(() => setShowConfetti(false), 3000)
+        triggerConfetti()
       } else if (isSpare) {
         text = 'SPARE!'
         color = '#4FC3F7'
@@ -78,42 +71,32 @@ function BowlingGame() {
       }
 
       addScore(lastScore)
-
-      const id = ++popupId.current
-      setPopups((prev) => [...prev, { id, text, position: [0, 2, -5], color }])
+      addPopup(text, [0, 2, -5], color)
 
       // After showing result, check for quiz or next frame
       setTimeout(() => {
-        // Trigger quiz every other frame
         if (currentFrame % 2 === 0 && currentFrame < BOWLING_CONFIG.totalFrames) {
-          const engine = getQuestionEngine(answeredIds)
-          const question = engine.getQuestion(difficulty, 'spelling', activeProfile?.age ?? 8)
-          useEducationStore.getState().setCurrentQuestion(question)
-          setGamePhase('quiz')
+          triggerQuiz('spelling')
         } else {
           handleNextFrame()
         }
       }, 2000)
     }
-  }, [bowlingPhase, isStrike, isSpare, frameScores, addScore, currentFrame])
+  }, [bowlingPhase, isStrike, isSpare, frameScores, addScore, currentFrame, triggerConfetti, addPopup, triggerQuiz])
 
   const handleNextFrame = useCallback(() => {
     if (pinsRef.current) {
       pinsRef.current.resetPins()
     }
     nextFrame()
-    setGamePhase('playing')
-  }, [nextFrame, setGamePhase])
+    useGameStore.getState().setGamePhase('playing')
+  }, [nextFrame])
 
   useEffect(() => {
     if (bowlingPhase === 'done') {
-      setGamePhase('gameover')
+      endGame()
     }
-  }, [bowlingPhase, setGamePhase])
-
-  const removePopup = useCallback((id: number) => {
-    setPopups((prev) => prev.filter((p) => p.id !== id))
-  }, [])
+  }, [bowlingPhase, endGame])
 
   return (
     <>
@@ -125,7 +108,7 @@ function BowlingGame() {
         shadow-mapSize-width={2048}
         shadow-mapSize-height={2048}
       />
-      <Environment preset="warehouse" />
+      <Skybox scene="bowling" />
       <color attach="background" args={['#1a1a2e']} />
 
       <PhysicsProvider paused={gamePhase !== 'playing'}>

@@ -32,7 +32,7 @@ export function BowlingBall({ onBallStopped }: BowlingBallProps) {
   }, [camera])
 
   // Handle ball positioning during aiming
-  useFrame(() => {
+  useFrame((state) => {
     if (phase === 'positioning' && ballRef.current) {
       ballRef.current.setTranslation(
         { x: bowlerX, y: ballStartPosition[1], z: ballStartPosition[2] },
@@ -44,14 +44,14 @@ export function BowlingBall({ onBallStopped }: BowlingBallProps) {
 
     // Power meter oscillation
     if (phase === 'charging') {
-      const t = Date.now() * 0.003
+      const t = state.clock.elapsedTime * 3
       const normalized = (Math.sin(t) + 1) / 2
       setPower(minBallSpeed + normalized * (maxBallSpeed - minBallSpeed))
     }
 
     // Spin needle oscillation
     if (phase === 'spinning') {
-      const t = Date.now() * 0.005
+      const t = state.clock.elapsedTime * 5
       setSpinAngle(Math.sin(t) * 3)
     }
 
@@ -88,11 +88,33 @@ export function BowlingBall({ onBallStopped }: BowlingBallProps) {
       }
     }
 
+    // Keyboard controls: Arrow keys to position, Space to advance phases
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        e.preventDefault()
+        if (phase === 'positioning') {
+          startCharging()
+        } else if (phase === 'charging') {
+          startSpinning()
+        } else if (phase === 'spinning') {
+          const { power, spin, bowlerX: bx } = release()
+          launchBall(power, spin, bx)
+        }
+      }
+      if (phase === 'positioning') {
+        const step = 0.1
+        if (e.code === 'ArrowLeft') setBowlerX(Math.max(-BOWLING_CONFIG.laneWidth * 0.45, useBowling.getState().bowlerX - step))
+        if (e.code === 'ArrowRight') setBowlerX(Math.min(BOWLING_CONFIG.laneWidth * 0.45, useBowling.getState().bowlerX + step))
+      }
+    }
+
     window.addEventListener('mousemove', handleMouseMove)
     window.addEventListener('mousedown', handleMouseDown)
+    window.addEventListener('keydown', handleKeyDown)
     return () => {
       window.removeEventListener('mousemove', handleMouseMove)
       window.removeEventListener('mousedown', handleMouseDown)
+      window.removeEventListener('keydown', handleKeyDown)
     }
   }, [phase, setBowlerX, startCharging, startSpinning, release])
 

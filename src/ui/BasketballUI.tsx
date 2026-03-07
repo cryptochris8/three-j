@@ -32,12 +32,15 @@ export function BasketballOverlay() {
     setGamePhase('playing')
   }, [resetCurrentScore, resetGame, setHasPowerShot, setGamePhase])
 
+  const setLastQuizResult = useGameStore((s) => s.setLastQuizResult)
+
   const handleQuizComplete = useCallback((correct: boolean) => {
     if (correct) {
       setHasPowerShot(true)
     }
+    setLastQuizResult(correct)
     setGamePhase('playing')
-  }, [setGamePhase, setHasPowerShot])
+  }, [setGamePhase, setHasPowerShot, setLastQuizResult])
 
   return (
     <>

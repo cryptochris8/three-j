@@ -19,7 +19,7 @@ export const BASKETBALL_CONFIG = {
 
   // Shooting
   minPower: 4,
-  maxPower: 10,
+  maxPower: 14,
   launchAngle: 55, // degrees from horizontal
   maxAimAngle: 30, // degrees left/right
 

@@ -1,5 +1,6 @@
 import { usePlayerStore } from '@/stores/usePlayerStore'
 import { useGameStore } from '@/stores/useGameStore'
+import { COLORS } from '@/core/constants'
 
 export function MainMenu() {
   const profiles = usePlayerStore((s) => s.profiles)
@@ -14,20 +15,24 @@ export function MainMenu() {
   }
 
   return (
-    <div style={{
-      position: 'absolute',
-      inset: 0,
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'linear-gradient(135deg, #1A1A2E 0%, #16213E 50%, #0F3460 100%)',
-      zIndex: 100,
-    }}>
+    <div
+      role="main"
+      aria-label="Main Menu"
+      style={{
+        position: 'absolute',
+        inset: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: `linear-gradient(135deg, ${COLORS.dark} 0%, #16213E 50%, #0F3460 100%)`,
+        zIndex: 100,
+      }}
+    >
       <h1 style={{
-        fontSize: '4rem',
+        fontSize: 'clamp(2.5rem, 8vw, 4rem)',
         fontWeight: 700,
-        background: 'linear-gradient(135deg, #FF6B35, #F7C948)',
+        background: `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.accent})`,
         WebkitBackgroundClip: 'text',
         WebkitTextFillColor: 'transparent',
         marginBottom: '0.5rem',
@@ -36,31 +41,41 @@ export function MainMenu() {
         Three-J
       </h1>
       <p style={{
-        fontSize: '1.5rem',
-        color: '#87CEEB',
+        fontSize: 'clamp(1rem, 3vw, 1.5rem)',
+        color: COLORS.sky,
         marginBottom: '3rem',
         fontWeight: 500,
       }}>
         Sports Academy
       </p>
 
-      <div style={{
-        display: 'flex',
-        gap: '1.5rem',
-        marginBottom: '2.5rem',
-      }}>
+      <div
+        role="radiogroup"
+        aria-label="Select player profile"
+        style={{
+          display: 'flex',
+          gap: '1.5rem',
+          marginBottom: '2.5rem',
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+          padding: '0 1rem',
+        }}
+      >
         {profiles.map((profile) => (
           <button
             key={profile.id}
+            role="radio"
+            aria-checked={activeProfileId === profile.id}
+            aria-label={`Select ${profile.name}, age ${profile.age}`}
             onClick={() => setActiveProfile(profile.id)}
             style={{
               width: '140px',
               padding: '1.2rem 1rem',
               borderRadius: '16px',
               background: activeProfileId === profile.id
-                ? 'linear-gradient(135deg, #FF6B35, #F7C948)'
+                ? `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.accent})`
                 : 'rgba(255,255,255,0.08)',
-              color: activeProfileId === profile.id ? '#1A1A2E' : '#fff',
+              color: activeProfileId === profile.id ? COLORS.dark : COLORS.white,
               fontSize: '1rem',
               fontWeight: 600,
               border: activeProfileId === profile.id
@@ -82,18 +97,19 @@ export function MainMenu() {
       <button
         onClick={handleStart}
         disabled={!activeProfileId}
+        aria-label="Start game"
         style={{
           padding: '1rem 3rem',
-          fontSize: '1.4rem',
+          fontSize: 'clamp(1rem, 3vw, 1.4rem)',
           fontWeight: 700,
           borderRadius: '50px',
           background: activeProfileId
-            ? 'linear-gradient(135deg, #FF6B35, #F7C948)'
+            ? `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.accent})`
             : 'rgba(255,255,255,0.1)',
-          color: activeProfileId ? '#1A1A2E' : '#666',
+          color: activeProfileId ? COLORS.dark : '#666',
           cursor: activeProfileId ? 'pointer' : 'default',
           boxShadow: activeProfileId
-            ? '0 8px 32px rgba(255,107,53,0.4)'
+            ? `0 8px 32px rgba(255,107,53,0.4)`
             : 'none',
         }}
       >

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "three-js-mcp": {
+      "command": "node",
+      "args": ["C:\\Users\\chris\\three-js-mcp\\build\\main.js"]
+    }
+  }
+}

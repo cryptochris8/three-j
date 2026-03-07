@@ -38,10 +38,16 @@ export const useScoreStore = create<ScoreState>()(
         set((s) => {
           const key = game
           const prevHigh = s.highScores[key] ?? 0
+          const isLowerBetter = game === 'minigolf'
+          const newHigh = prevHigh === 0
+            ? score
+            : isLowerBetter
+              ? Math.min(prevHigh, score)
+              : Math.max(prevHigh, score)
           return {
             highScores: {
               ...s.highScores,
-              [key]: Math.max(prevHigh, score),
+              [key]: newHigh,
             },
             history: [...s.history, { game, score, stars, date: Date.now() }],
           }

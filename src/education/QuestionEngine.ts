@@ -36,9 +36,8 @@ export class QuestionEngine {
       }
       attempts++
     } while (
-      this.answeredIds.has(question.id) &&
-      attempts < 10 &&
-      question.ageMin <= playerAge
+      (this.answeredIds.has(question.id) || question.ageMin > playerAge) &&
+      attempts < 10
     )
 
     return question
@@ -60,6 +59,10 @@ let engineInstance: QuestionEngine | null = null
 export function getQuestionEngine(answeredIds: string[] = []): QuestionEngine {
   if (!engineInstance) {
     engineInstance = new QuestionEngine(answeredIds)
+  } else {
+    for (const id of answeredIds) {
+      engineInstance.markAnswered(id)
+    }
   }
   return engineInstance
 }
