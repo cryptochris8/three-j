@@ -17,6 +17,8 @@ interface MinigolfState {
 
   lastBallPosition: [number, number, number]
   resetCounter: number
+  hasGuideLine: boolean
+  effectiveMaxStrokes: number
 
   startDrag: (x: number, y: number) => void
   updateDrag: (x: number, y: number) => void
@@ -28,7 +30,8 @@ interface MinigolfState {
   outOfBounds: () => void
   nextHole: () => void
   getCurrentHoleConfig: () => typeof COURSES[0]
-  resetGame: () => void
+  grantGuideLine: () => void
+  resetGame: (maxStrokes?: number) => void
 }
 
 export const useMinigolf = create<MinigolfState>((set, get) => ({
@@ -44,6 +47,8 @@ export const useMinigolf = create<MinigolfState>((set, get) => ({
   isDragging: false,
   lastBallPosition: COURSES[0].teePosition,
   resetCounter: 0,
+  hasGuideLine: false,
+  effectiveMaxStrokes: MINIGOLF_CONFIG.maxStrokes,
 
   startDrag: (x, y) => set({ isDragging: true, dragStartX: x, dragStartY: y, dragEndX: x, dragEndY: y }),
 
@@ -68,6 +73,7 @@ export const useMinigolf = create<MinigolfState>((set, get) => ({
       phase: 'rolling',
       isDragging: false,
       strokes: strokes + 1,
+      hasGuideLine: false,
     })
 
     return { dirX, dirZ, power }
@@ -76,14 +82,14 @@ export const useMinigolf = create<MinigolfState>((set, get) => ({
   saveBallPosition: (pos: [number, number, number]) => set({ lastBallPosition: pos }),
 
   ballStopped: () => {
-    const { phase, strokes } = get()
+    const { phase, strokes, effectiveMaxStrokes } = get()
     if (phase === 'rolling') {
-      if (strokes >= MINIGOLF_CONFIG.maxStrokes) {
+      if (strokes >= effectiveMaxStrokes) {
         // Max strokes reached, move on
         set((s) => ({
           phase: 'holed',
-          strokesPerHole: [...s.strokesPerHole, MINIGOLF_CONFIG.maxStrokes],
-          totalStrokes: s.totalStrokes + MINIGOLF_CONFIG.maxStrokes,
+          strokesPerHole: [...s.strokesPerHole, effectiveMaxStrokes],
+          totalStrokes: s.totalStrokes + effectiveMaxStrokes,
         }))
       } else {
         set({ phase: 'aiming' })
@@ -132,6 +138,7 @@ export const useMinigolf = create<MinigolfState>((set, get) => ({
         phase: 'aiming',
         strokes: 0,
         isDragging: false,
+        hasGuideLine: false,
         lastBallPosition: COURSES[nextHoleIdx].teePosition,
         resetCounter: s.resetCounter + 1,
       }))
@@ -140,7 +147,9 @@ export const useMinigolf = create<MinigolfState>((set, get) => ({
 
   getCurrentHoleConfig: () => COURSES[get().currentHole],
 
-  resetGame: () => set({
+  grantGuideLine: () => set({ hasGuideLine: true }),
+
+  resetGame: (maxStrokes?: number) => set({
     phase: 'aiming',
     currentHole: 0,
     strokes: 0,
@@ -151,6 +160,8 @@ export const useMinigolf = create<MinigolfState>((set, get) => ({
     dragEndX: 0,
     dragEndY: 0,
     isDragging: false,
+    hasGuideLine: false,
     lastBallPosition: COURSES[0].teePosition,
+    effectiveMaxStrokes: maxStrokes ?? MINIGOLF_CONFIG.maxStrokes,
   }),
 }))

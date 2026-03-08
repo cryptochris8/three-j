@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef } from 'react'
+import { useEffect, useCallback, useRef, useMemo } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { Skybox } from '@/components/Skybox'
 import { RigidBody, type RapierRigidBody } from '@react-three/rapier'
@@ -10,11 +10,10 @@ import { Field } from '@/games/soccer/Field'
 import { Goal } from '@/games/soccer/Goal'
 import { Goalkeeper } from '@/games/soccer/Goalkeeper'
 import { useSoccer } from '@/games/soccer/useSoccer'
-import { SOCCER_CONFIG } from '@/games/soccer/config'
+import { SOCCER_CONFIG, getSoccerConfig } from '@/games/soccer/config'
 import { ScorePopup } from '@/components/ScorePopup'
 import { Confetti } from '@/components/Confetti'
-import { useGameSession } from '@/hooks/useGameSession'
-import { useGameKeyboard } from '@/hooks/useGameKeyboard'
+import { useGameScene } from '@/hooks/useGameScene'
 import { audioManager } from '@/core/AudioManager'
 
 function SoccerBall() {
@@ -58,7 +57,6 @@ function SoccerBall() {
       const pos = ballRef.current.translation()
 
       if (speed < 0.3 || pos.z < -12 || pos.y < -2) {
-        // Ball stopped without scoring = saved or miss
         if (pos.x > -SOCCER_CONFIG.goalWidth / 2 && pos.x < SOCCER_CONFIG.goalWidth / 2 && pos.z < -7) {
           registerSaved()
         } else {
@@ -91,7 +89,7 @@ function SoccerBall() {
       }
     }
 
-    // Keyboard controls: Arrow keys to aim, Space to charge/kick
+    // Keyboard controls
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code === 'Space') {
         e.preventDefault()
@@ -134,7 +132,6 @@ function SoccerBall() {
     const [bx, by, bz] = SOCCER_CONFIG.ballStartPosition
     ballRef.current.setTranslation({ x: bx, y: by, z: bz }, true)
 
-    // Calculate direction towards aim point on goal
     const targetZ = SOCCER_CONFIG.goalPosition[2]
     const dz = targetZ - bz
     const dx = ax
@@ -173,6 +170,8 @@ function SoccerBall() {
 
 function SoccerGame() {
   const gamePhase = useGameStore((s) => s.gamePhase)
+  const selectedDifficulty = useGameStore((s) => s.selectedDifficulty)
+  const soccerConfig = useMemo(() => getSoccerConfig(selectedDifficulty), [selectedDifficulty])
   const addScore = useScoreStore((s) => s.addScore)
   const difficulty = useEducationStore((s) => s.difficulty)
 
@@ -188,13 +187,7 @@ function SoccerGame() {
     resetGame,
   } = useSoccer()
 
-  const { popups, showConfetti, addPopup, removePopup, triggerConfetti, triggerQuiz, initGame, endGame } = useGameSession()
-  useGameKeyboard()
-
-  // Initialize
-  useEffect(() => {
-    initGame(resetGame)
-  }, [])
+  const { popups, showConfetti, addPopup, removePopup, triggerConfetti, triggerQuiz, endGame } = useGameScene('soccer', () => resetGame(soccerConfig.totalKicks))
 
   // Handle goal scored
   const handleGoalScored = useCallback(() => {
@@ -223,7 +216,6 @@ function SoccerGame() {
         color = '#888'
       }
 
-      // Simulate opponent
       const opScored = simulateOpponent()
       if (opScored) {
         setTimeout(() => {
@@ -233,9 +225,8 @@ function SoccerGame() {
 
       addPopup(text, [0, 3, -5], color)
 
-      // Quiz every 2nd kick
       setTimeout(() => {
-        if (currentKick % 2 === 0 && currentKick < SOCCER_CONFIG.totalKicks) {
+        if (currentKick % 2 === 0 && currentKick < soccerConfig.totalKicks) {
           triggerQuiz()
         } else {
           nextKick()
@@ -277,7 +268,6 @@ function SoccerGame() {
         <SoccerBall />
       </PhysicsProvider>
 
-      {/* Score popups */}
       {popups.map((popup) => (
         <ScorePopup
           key={popup.id}
@@ -290,15 +280,12 @@ function SoccerGame() {
 
       {showConfetti && <Confetti position={[0, 2, -8]} />}
 
-      {/* Aim crosshair (when aiming) */}
       {soccerPhase === 'aiming' && (
         <mesh position={[aimX, aimY, SOCCER_CONFIG.goalPosition[2] + 0.5]}>
           <ringGeometry args={[0.15, 0.2, 16]} />
           <meshBasicMaterial color="#FF6B35" transparent opacity={0.8} />
         </mesh>
       )}
-
-      {/* UI overlays now rendered outside Canvas via SoccerOverlay */}
     </>
   )
 }

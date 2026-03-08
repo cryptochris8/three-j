@@ -1,3 +1,6 @@
+import type { Difficulty } from '@/types'
+import { DIFFICULTY_TIERS } from '@/systems/difficultyTiers'
+
 export const BOWLING_CONFIG = {
   // Lane
   laneLength: 18,
@@ -33,6 +36,16 @@ export const BOWLING_CONFIG = {
   followDistance: 3,
   pinCamPosition: [2, 0.5, -6] as [number, number, number],
 } as const
+
+export function getBowlingConfig(difficulty: Difficulty) {
+  const tier = DIFFICULTY_TIERS[difficulty].bowling
+  return {
+    ...BOWLING_CONFIG,
+    totalFrames: tier.totalFrames,
+    hasBumpers: tier.hasBumpers,
+    laneWidthScale: tier.laneWidthScale,
+  }
+}
 
 // Pin positions in standard triangle formation
 export function getPinPositions(): [number, number, number][] {

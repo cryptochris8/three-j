@@ -1,6 +1,8 @@
+import { useEffect } from 'react'
 import { usePlayerStore } from '@/stores/usePlayerStore'
 import { useGameStore } from '@/stores/useGameStore'
 import { audioManager } from '@/core/AudioManager'
+import { switchPlayerStores, migrateUnscopedData } from '@/core/playerScoping'
 
 const PROFILE_COLORS = [
   { bg: 'linear-gradient(135deg, #FF6B6B, #FF8E53)', shadow: 'rgba(255,107,83,0.5)' },
@@ -13,6 +15,11 @@ export function MainMenu() {
   const activeProfileId = usePlayerStore((s) => s.activeProfileId)
   const setActiveProfile = usePlayerStore((s) => s.setActiveProfile)
   const setScene = useGameStore((s) => s.setScene)
+
+  useEffect(() => {
+    migrateUnscopedData()
+    audioManager.playMusic('menu')
+  }, [])
 
   const handleStart = () => {
     if (activeProfileId) {
@@ -108,7 +115,10 @@ export function MainMenu() {
               role="radio"
               aria-checked={isActive}
               aria-label={`Select ${profile.name}, age ${profile.age}`}
-              onClick={() => setActiveProfile(profile.id)}
+              onClick={() => {
+                setActiveProfile(profile.id)
+                switchPlayerStores(profile.id)
+              }}
               style={{
                 width: '150px',
                 padding: '1.5rem 1rem',

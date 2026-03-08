@@ -6,6 +6,7 @@ type BowlingPhase = 'positioning' | 'charging' | 'spinning' | 'rolling' | 'scori
 interface BowlingState {
   phase: BowlingPhase
   currentFrame: number
+  effectiveTotalFrames: number
   ballsThisFrame: number
   frameScores: number[]
   pinsKnocked: boolean[]
@@ -15,6 +16,7 @@ interface BowlingState {
   spinAngle: number
   isStrike: boolean
   isSpare: boolean
+  hasExtraBall: boolean
 
   setBowlerX: (x: number) => void
   startCharging: () => void
@@ -25,12 +27,14 @@ interface BowlingState {
   setPinsKnocked: (knocked: boolean[]) => void
   endBall: () => void
   nextFrame: () => void
-  resetGame: () => void
+  grantExtraBall: () => void
+  resetGame: (totalFrames?: number) => void
 }
 
 export const useBowling = create<BowlingState>((set, get) => ({
   phase: 'positioning',
   currentFrame: 1,
+  effectiveTotalFrames: BOWLING_CONFIG.totalFrames,
   ballsThisFrame: 0,
   frameScores: [],
   pinsKnocked: Array(10).fill(false),
@@ -40,6 +44,7 @@ export const useBowling = create<BowlingState>((set, get) => ({
   spinAngle: 0,
   isStrike: false,
   isSpare: false,
+  hasExtraBall: false,
 
   setBowlerX: (x) => set({ bowlerX: x }),
 
@@ -63,7 +68,7 @@ export const useBowling = create<BowlingState>((set, get) => ({
   },
 
   endBall: () => {
-    const { pinsKnocked, ballsThisFrame } = get()
+    const { pinsKnocked, ballsThisFrame, hasExtraBall } = get()
     const knockedCount = pinsKnocked.filter(Boolean).length
 
     if (knockedCount === 10 && ballsThisFrame === 1) {
@@ -84,6 +89,9 @@ export const useBowling = create<BowlingState>((set, get) => ({
         isSpare: true,
         frameScores: [...s.frameScores, score],
       }))
+    } else if (ballsThisFrame >= 2 && hasExtraBall) {
+      // Extra ball powerup: get one more try
+      set({ phase: 'positioning', hasExtraBall: false })
     } else if (ballsThisFrame >= 2) {
       // Open frame
       const score = knockedCount * BOWLING_CONFIG.pinPoint
@@ -99,9 +107,11 @@ export const useBowling = create<BowlingState>((set, get) => ({
     }
   },
 
+  grantExtraBall: () => set({ hasExtraBall: true }),
+
   nextFrame: () => {
-    const { currentFrame } = get()
-    if (currentFrame >= BOWLING_CONFIG.totalFrames) {
+    const { currentFrame, effectiveTotalFrames } = get()
+    if (currentFrame >= effectiveTotalFrames) {
       set({ phase: 'done' })
     } else {
       set({
@@ -115,13 +125,15 @@ export const useBowling = create<BowlingState>((set, get) => ({
         spinAngle: 0,
         isStrike: false,
         isSpare: false,
+        hasExtraBall: false,
       })
     }
   },
 
-  resetGame: () => set({
+  resetGame: (totalFrames?: number) => set({
     phase: 'positioning',
     currentFrame: 1,
+    effectiveTotalFrames: totalFrames ?? BOWLING_CONFIG.totalFrames,
     ballsThisFrame: 0,
     frameScores: [],
     pinsKnocked: Array(10).fill(false),
@@ -131,5 +143,6 @@ export const useBowling = create<BowlingState>((set, get) => ({
     spinAngle: 0,
     isStrike: false,
     isSpare: false,
+    hasExtraBall: false,
   }),
 }))

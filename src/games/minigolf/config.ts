@@ -1,3 +1,6 @@
+import type { Difficulty } from '@/types'
+import { DIFFICULTY_TIERS } from '@/systems/difficultyTiers'
+
 export interface HoleConfig {
   id: number
   name: string
@@ -24,6 +27,15 @@ export const MINIGOLF_CONFIG = {
   maxStrokes: 8,
   outOfBoundsY: -2,
 } as const
+
+export function getMinigolfConfig(difficulty: Difficulty) {
+  const tier = DIFFICULTY_TIERS[difficulty].minigolf
+  return {
+    ...MINIGOLF_CONFIG,
+    maxStrokes: tier.maxStrokes,
+    parScale: tier.parScale,
+  }
+}
 
 export const COURSES: HoleConfig[] = [
   // Course 1: Animal Safari (holes 1-3)

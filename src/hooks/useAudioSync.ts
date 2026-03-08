@@ -1,57 +1,58 @@
 import { useEffect, useRef } from 'react'
 import { useSettingsStore } from '@/stores/useSettingsStore'
+import { useGameStore } from '@/stores/useGameStore'
 import { audioManager } from '@/core/AudioManager'
+import { COMMON_AUDIO, SCENE_AUDIO } from '@/core/audioManifest'
 
 /**
- * Syncs the settings store volume values to the AudioManager singleton
- * and loads all sound effects + voice lines on first mount.
+ * Syncs the settings store volume values to the AudioManager singleton.
+ * Loads common audio on first mount; loads scene-specific audio when scene changes.
  * Call once at the app root level.
  */
 export function useAudioSync() {
   const sfxVolume = useSettingsStore((s) => s.sfxVolume)
   const musicVolume = useSettingsStore((s) => s.musicVolume)
   const voiceVolume = useSettingsStore((s) => s.voiceVolume)
+  const currentScene = useGameStore((s) => s.currentScene)
   const loaded = useRef(false)
+  const loadedScenes = useRef(new Set<string>())
 
-  // Load all audio once on mount
+  // Load common audio once on mount
   useEffect(() => {
     if (loaded.current) return
     loaded.current = true
 
-    // SFX
-    audioManager.loadSound('bounce', '/audio/sfx/bounce.mp3')
-    audioManager.loadSound('swish', '/audio/sfx/swish.mp3')
-    audioManager.loadSound('rimClang', '/audio/sfx/rimClang.mp3')
-    audioManager.loadSound('crowd', '/audio/sfx/crowd.mp3')
-    audioManager.loadSound('kick', '/audio/sfx/kick.mp3')
-    audioManager.loadSound('goalCheer', '/audio/sfx/goalCheer.mp3')
-    audioManager.loadSound('whistle', '/audio/sfx/whistle.mp3')
-    audioManager.loadSound('bowlRoll', '/audio/sfx/bowlRoll.mp3')
-    audioManager.loadSound('pinCrash', '/audio/sfx/pinCrash.mp3')
-    audioManager.loadSound('putt', '/audio/sfx/putt.mp3')
-    audioManager.loadSound('holeIn', '/audio/sfx/holeIn.mp3')
-    audioManager.loadSound('splash', '/audio/sfx/splash.mp3')
-    audioManager.loadSound('correct', '/audio/sfx/correct.wav')
-    audioManager.loadSound('wrong', '/audio/sfx/wrong.wav')
-    audioManager.loadSound('click', '/audio/sfx/click.mp3')
-    audioManager.loadSound('star', '/audio/sfx/star.mp3')
-    audioManager.loadSound('unlock', '/audio/sfx/unlock.mp3')
-    audioManager.loadSound('confetti', '/audio/sfx/confetti.mp3')
-
-    // Voice lines
-    audioManager.loadVoice('welcome', '/audio/voice/welcome.mp3')
-    audioManager.loadVoice('swish', '/audio/voice/swish.mp3')
-    audioManager.loadVoice('goal', '/audio/voice/goal.mp3')
-    audioManager.loadVoice('strike', '/audio/voice/strike.mp3')
-    audioManager.loadVoice('spare', '/audio/voice/spare.mp3')
-    audioManager.loadVoice('greatPutt', '/audio/voice/great-putt.mp3')
-    audioManager.loadVoice('greatSave', '/audio/voice/great-save.mp3')
-    audioManager.loadVoice('gameOver', '/audio/voice/game-over.mp3')
-    audioManager.loadVoice('quizTime', '/audio/voice/quiz-time.mp3')
-    audioManager.loadVoice('quizCorrect', '/audio/voice/quiz-correct.mp3')
-    audioManager.loadVoice('quizWrong', '/audio/voice/quiz-wrong.mp3')
-    audioManager.loadVoice('streak', '/audio/voice/streak.mp3')
+    for (const s of COMMON_AUDIO.sounds) audioManager.loadSound(s.name, s.src)
+    for (const v of COMMON_AUDIO.voices) audioManager.loadVoice(v.name, v.src)
+    for (const m of COMMON_AUDIO.music) audioManager.loadMusic(m.name, m.src)
   }, [])
+
+  // Load scene-specific audio when scene changes
+  useEffect(() => {
+    if (currentScene === 'menu' || currentScene === 'hub') return
+    if (loadedScenes.current.has(currentScene)) return
+
+    const manifest = SCENE_AUDIO[currentScene]
+    if (!manifest) return
+
+    loadedScenes.current.add(currentScene)
+
+    for (const s of manifest.sounds) {
+      if (!audioManager.isSoundLoaded(s.name)) {
+        audioManager.loadSound(s.name, s.src)
+      }
+    }
+    for (const v of manifest.voices) {
+      if (!audioManager.isSoundLoaded(v.name)) {
+        audioManager.loadVoice(v.name, v.src)
+      }
+    }
+    for (const m of manifest.music) {
+      if (!audioManager.isSoundLoaded(m.name)) {
+        audioManager.loadMusic(m.name, m.src)
+      }
+    }
+  }, [currentScene])
 
   useEffect(() => {
     audioManager.setSfxVolume(sfxVolume)

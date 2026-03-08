@@ -7,6 +7,7 @@ type KickResult = 'goal' | 'saved' | 'miss'
 interface SoccerState {
   phase: SoccerPhase
   currentKick: number
+  effectiveTotalKicks: number
   playerGoals: number
   opponentGoals: number
   aimX: number
@@ -25,12 +26,13 @@ interface SoccerState {
   simulateOpponent: () => boolean
   nextKick: () => void
   setKeeperSlowed: (slowed: boolean) => void
-  resetGame: () => void
+  resetGame: (totalKicks?: number) => void
 }
 
 export const useSoccer = create<SoccerState>((set, get) => ({
   phase: 'aiming',
   currentKick: 1,
+  effectiveTotalKicks: SOCCER_CONFIG.totalKicks,
   playerGoals: 0,
   opponentGoals: 0,
   aimX: 0,
@@ -74,8 +76,8 @@ export const useSoccer = create<SoccerState>((set, get) => ({
   },
 
   nextKick: () => {
-    const { currentKick } = get()
-    if (currentKick >= SOCCER_CONFIG.totalKicks) {
+    const { currentKick, effectiveTotalKicks } = get()
+    if (currentKick >= effectiveTotalKicks) {
       set({ phase: 'done' })
     } else {
       set({
@@ -92,9 +94,10 @@ export const useSoccer = create<SoccerState>((set, get) => ({
 
   setKeeperSlowed: (slowed) => set({ keeperSlowed: slowed }),
 
-  resetGame: () => set({
+  resetGame: (totalKicks?: number) => set({
     phase: 'aiming',
     currentKick: 1,
+    effectiveTotalKicks: totalKicks ?? SOCCER_CONFIG.totalKicks,
     playerGoals: 0,
     opponentGoals: 0,
     aimX: 0,

@@ -12,6 +12,9 @@ export function HUD({ gameName, shotsRemaining, timeRemaining }: HUDProps) {
   const currentStreak = useScoreStore((s) => s.currentStreak)
   const setGamePhase = useGameStore((s) => s.setGamePhase)
 
+  const isOnFire = currentStreak >= 5
+  const hasStreakGlow = currentStreak >= 3
+
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60)
     const s = seconds % 60
@@ -36,12 +39,18 @@ export function HUD({ gameName, shotsRemaining, timeRemaining }: HUDProps) {
         borderRadius: '12px',
         padding: '0.6rem 1.2rem',
         backdropFilter: 'blur(8px)',
+        boxShadow: hasStreakGlow ? '0 0 20px rgba(247, 201, 72, 0.4)' : undefined,
+        transition: 'box-shadow 0.3s ease',
       }}>
         <div style={{ fontSize: '0.8rem', opacity: 0.7, textTransform: 'uppercase' }}>{gameName}</div>
         <div style={{ fontSize: '2rem', fontWeight: 700 }}>{currentScore}</div>
         {currentStreak > 1 && (
-          <div style={{ fontSize: '0.8rem', color: '#F7C948' }}>
-            Streak x{currentStreak}
+          <div style={{
+            fontSize: '0.8rem',
+            color: isOnFire ? '#FF6B35' : '#F7C948',
+            fontWeight: isOnFire ? 700 : 400,
+          }}>
+            {isOnFire ? 'ON FIRE! ' : ''}Streak x{currentStreak}
           </div>
         )}
       </div>
@@ -56,6 +65,7 @@ export function HUD({ gameName, shotsRemaining, timeRemaining }: HUDProps) {
             fontSize: '1.4rem',
             fontWeight: 600,
             color: timeRemaining <= 10 ? '#E74C3C' : '#fff',
+            animation: timeRemaining <= 10 ? 'pulse 1s ease-in-out infinite' : undefined,
           }}>
             {formatTime(timeRemaining)}
           </div>

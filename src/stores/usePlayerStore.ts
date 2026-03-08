@@ -15,6 +15,7 @@ interface PlayerState {
   setActiveProfile: (id: number) => void
   updateProfile: (id: number, updates: Partial<PlayerProfile>) => void
   addCoins: (amount: number) => void
+  spendCoins: (amount: number) => boolean
   addXP: (amount: number) => void
 }
 
@@ -46,6 +47,19 @@ export const usePlayerStore = create<PlayerState>()(
             p.id === activeProfileId ? { ...p, coins: p.coins + amount } : p
           ),
         }))
+      },
+
+      spendCoins: (amount) => {
+        const { activeProfileId, profiles } = get()
+        if (!activeProfileId) return false
+        const profile = profiles.find((p) => p.id === activeProfileId)
+        if (!profile || profile.coins < amount) return false
+        set((s) => ({
+          profiles: s.profiles.map((p) =>
+            p.id === activeProfileId ? { ...p, coins: p.coins - amount } : p
+          ),
+        }))
+        return true
       },
 
       addXP: (amount) => {

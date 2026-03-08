@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef } from 'react'
+import { useEffect, useCallback, useRef, useState } from 'react'
 import { Skybox } from '@/components/Skybox'
 import { useGameStore } from '@/stores/useGameStore'
 import { useScoreStore } from '@/stores/useScoreStore'
@@ -7,14 +7,15 @@ import { Court } from '@/games/basketball/Court'
 import { Hoop } from '@/games/basketball/Hoop'
 import { BallAndShooter } from '@/games/basketball/BallAndShooter'
 import { useBasketball } from '@/games/basketball/useBasketball'
-import { BASKETBALL_CONFIG } from '@/games/basketball/config'
+import { BASKETBALL_CONFIG, getBasketballConfig } from '@/games/basketball/config'
 import { ScorePopup } from '@/components/ScorePopup'
 import { Confetti } from '@/components/Confetti'
-import { useGameSession } from '@/hooks/useGameSession'
-import { useGameKeyboard } from '@/hooks/useGameKeyboard'
+import { ScreenShake } from '@/components/ScreenShake'
+import { useGameScene } from '@/hooks/useGameScene'
 import { audioManager } from '@/core/AudioManager'
 
 // Shared state for the UI overlay (read by BasketballUI outside Canvas)
+import { useMemo } from 'react'
 import { create } from 'zustand'
 
 interface BasketballUIState {
@@ -29,6 +30,8 @@ export const useBasketballUI = create<BasketballUIState>((set) => ({
 
 function BasketballGame() {
   const gamePhase = useGameStore((s) => s.gamePhase)
+  const selectedDifficulty = useGameStore((s) => s.selectedDifficulty)
+  const config = useMemo(() => getBasketballConfig(selectedDifficulty), [selectedDifficulty])
   const addScore = useScoreStore((s) => s.addScore)
   const incrementStreak = useScoreStore((s) => s.incrementStreak)
   const currentStreak = useScoreStore((s) => s.currentStreak)
@@ -46,27 +49,21 @@ function BasketballGame() {
     resetGame,
   } = useBasketball()
 
-  const { popups, showConfetti, addPopup, removePopup, triggerConfetti, triggerQuiz, initGame, endGame } = useGameSession()
-  useGameKeyboard()
-  const shotCount = useRef(0)
+  const [shakeActive, setShakeActive] = useState(false)
 
-  // Initialize game
-  useEffect(() => {
-    initGame(() => {
-      resetGame()
-      shotCount.current = 0
-      setHasPowerShot(false)
-    })
-  }, [])
+  const { popups, showConfetti, addPopup, removePopup, triggerConfetti, triggerQuiz, endGame } = useGameScene('basketball', () => {
+    resetGame(config.totalShots, config.roundTimeSeconds)
+    shotCount.current = 0
+    setHasPowerShot(false)
+  })
+  const shotCount = useRef(0)
 
   // Timer
   useEffect(() => {
     if (gamePhase !== 'playing') return
     const interval = setInterval(() => {
       const expired = decrementTime()
-      if (expired) {
-        endGame()
-      }
+      if (expired) endGame()
     }, 1000)
     return () => clearInterval(interval)
   }, [gamePhase, decrementTime, endGame])
@@ -80,7 +77,7 @@ function BasketballGame() {
 
   // Track shots for quiz trigger
   useEffect(() => {
-    const totalShots = BASKETBALL_CONFIG.totalShots
+    const totalShots = config.totalShots
     const currentShot = totalShots - shotsRemaining
     if (currentShot > 0 && currentShot % 3 === 0 && gamePhase === 'playing' && !isBallFlying) {
       if (currentShot !== shotCount.current) {
@@ -132,6 +129,10 @@ function BasketballGame() {
       addScore(points)
       incrementStreak()
 
+      // Trigger screen shake
+      setShakeActive(true)
+      setTimeout(() => setShakeActive(false), 300)
+
       addPopup(text, [0, 3.5, -5], color)
 
       if (result === 'swish') {
@@ -177,6 +178,7 @@ function BasketballGame() {
       ))}
 
       {showConfetti && <Confetti position={[0, 3.5, -5]} />}
+      <ScreenShake active={shakeActive} intensity={0.1} duration={0.25} />
     </>
   )
 }

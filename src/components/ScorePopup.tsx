@@ -13,22 +13,53 @@ interface ScorePopupProps {
 export function ScorePopup({ text, position, color = '#F7C948', onComplete }: ScorePopupProps) {
   const groupRef = useRef<Group>(null)
   const [opacity, setOpacity] = useState(1)
+  const [scale, setScale] = useState(0.01)
   const startClock = useRef(-1)
 
   useFrame((state) => {
     if (!groupRef.current) return
     if (startClock.current < 0) startClock.current = state.clock.elapsedTime
     const elapsed = state.clock.elapsedTime - startClock.current
+
+    // Scale-in with overshoot (0 -> 1.3 -> 1.0 in first 0.2s)
+    let s: number
+    if (elapsed < 0.1) {
+      s = (elapsed / 0.1) * 1.3
+    } else if (elapsed < 0.2) {
+      s = 1.3 - ((elapsed - 0.1) / 0.1) * 0.3
+    } else {
+      s = 1
+    }
+    setScale(s)
+
+    // Float up
     groupRef.current.position.y = position[1] + elapsed * 1.5
-    const newOpacity = Math.max(0, 1 - elapsed / 1.5)
+
+    // Fade out after 0.5s
+    const fadeStart = 0.5
+    const fadeDuration = 1.0
+    const newOpacity = elapsed < fadeStart ? 1 : Math.max(0, 1 - (elapsed - fadeStart) / fadeDuration)
     setOpacity(newOpacity)
+
     if (newOpacity <= 0 && onComplete) {
       onComplete()
     }
   })
 
   return (
-    <group ref={groupRef} position={position}>
+    <group ref={groupRef} position={position} scale={[scale, scale, scale]}>
+      {/* Glow layer */}
+      <Text
+        fontSize={0.55}
+        fontWeight={700}
+        color={color}
+        anchorX="center"
+        anchorY="middle"
+        fillOpacity={opacity * 0.3}
+      >
+        {text}
+      </Text>
+      {/* Main text */}
       <Text
         fontSize={0.5}
         fontWeight={700}

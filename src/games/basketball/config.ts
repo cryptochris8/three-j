@@ -1,3 +1,6 @@
+import type { Difficulty } from '@/types'
+import { DIFFICULTY_TIERS } from '@/systems/difficultyTiers'
+
 export const BASKETBALL_CONFIG = {
   // Court
   courtWidth: 15,
@@ -38,3 +41,13 @@ export const BASKETBALL_CONFIG = {
   totalShots: 15,
   roundTimeSeconds: 90,
 } as const
+
+export function getBasketballConfig(difficulty: Difficulty) {
+  const tier = DIFFICULTY_TIERS[difficulty].basketball
+  return {
+    ...BASKETBALL_CONFIG,
+    totalShots: tier.totalShots,
+    roundTimeSeconds: tier.roundTimeSeconds,
+    hoopRadiusScale: tier.hoopRadiusScale,
+  }
+}

@@ -6,6 +6,7 @@ import { MainMenu } from '@/ui/MainMenu'
 import { PauseMenu } from '@/ui/PauseMenu'
 import { TutorialOverlay } from '@/ui/TutorialOverlay'
 import { HomeButton } from '@/ui/HomeButton'
+import { AchievementToast } from '@/ui/AchievementToast'
 import { GAME_REGISTRY } from '@/core/gameRegistry'
 
 function SceneContent() {
@@ -78,6 +79,7 @@ export function App() {
       )}
       {gamePhase === 'paused' && <PauseMenu />}
       {isLoading && <LoadingScreen />}
+      <AchievementToast />
     </>
   )
 }

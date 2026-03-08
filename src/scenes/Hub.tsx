@@ -1,11 +1,17 @@
-import { useRef } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
 import { Skybox } from '@/components/Skybox'
 import { useGameStore } from '@/stores/useGameStore'
 import { useProgressStore } from '@/stores/useProgressStore'
 import { usePlayerStore } from '@/stores/usePlayerStore'
-import type { Scene } from '@/types'
+import { audioManager } from '@/core/AudioManager'
+import { AchievementsPanel } from '@/ui/AchievementsPanel'
+import { ShopPanel } from '@/ui/ShopPanel'
+import { StatsPanel } from '@/ui/StatsPanel'
+import { DailyChallenges } from '@/ui/DailyChallenges'
+import { GAME_MODES } from '@/systems/gameModes'
+import type { Scene, Difficulty } from '@/types'
 import type { Mesh, Group } from 'three'
 
 const GAMES: { game: Scene; label: string; emoji: string; color: string; unlockStars: number }[] = [
@@ -15,7 +21,12 @@ const GAMES: { game: Scene; label: string; emoji: string; color: string; unlockS
   { game: 'minigolf', label: 'Mini-Golf', emoji: '⛳', color: '#9C27B0', unlockStars: 15 },
 ]
 
-/* Small floating orbs in 3D space for visual ambiance */
+const DIFFICULTIES: { value: Difficulty; label: string; color: string }[] = [
+  { value: 'easy', label: 'Easy', color: '#2ECC71' },
+  { value: 'medium', label: 'Medium', color: '#F7C948' },
+  { value: 'hard', label: 'Hard', color: '#E74C3C' },
+]
+
 function FloatingOrbs() {
   const groupRef = useRef<Group>(null)
 
@@ -64,9 +75,19 @@ function FloatingOrb({ color, position }: { color: string; position: [number, nu
 function HubUI() {
   const setScene = useGameStore((s) => s.setScene)
   const setGamePhase = useGameStore((s) => s.setGamePhase)
+  const selectedDifficulty = useGameStore((s) => s.selectedDifficulty)
+  const setSelectedDifficulty = useGameStore((s) => s.setSelectedDifficulty)
+  const gameMode = useGameStore((s) => s.gameMode)
+  const setGameMode = useGameStore((s) => s.setGameMode)
   const profile = usePlayerStore((s) => s.getActiveProfile())
   const totalStars = useProgressStore((s) => s.totalStars)
+  const achievements = useProgressStore((s) => s.achievements)
   const isGameUnlocked = useProgressStore((s) => s.isGameUnlocked)
+
+  const [showAchievements, setShowAchievements] = useState(false)
+  const [showShop, setShowShop] = useState(false)
+  const [showStats, setShowStats] = useState(false)
+  const [showDailyChallenges, setShowDailyChallenges] = useState(false)
 
   const handleBackToMenu = () => {
     useGameStore.getState().setScene('menu')
@@ -102,26 +123,94 @@ function HubUI() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.8rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <button
+            onClick={() => setShowAchievements(true)}
+            style={{
+              background: 'rgba(0,0,0,0.5)',
+              padding: '0.5rem 0.8rem',
+              borderRadius: '12px',
+              backdropFilter: 'blur(10px)',
+              textAlign: 'center',
+              pointerEvents: 'auto',
+              border: 'none',
+              color: '#fff',
+              cursor: 'pointer',
+            }}
+          >
+            <div style={{ fontSize: '0.6rem', opacity: 0.6 }}>TROPHIES</div>
+            <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#F7C948' }}>{achievements.length}</div>
+          </button>
+          <button
+            onClick={() => setShowShop(true)}
+            style={{
+              background: 'rgba(0,0,0,0.5)',
+              padding: '0.5rem 0.8rem',
+              borderRadius: '12px',
+              backdropFilter: 'blur(10px)',
+              textAlign: 'center',
+              pointerEvents: 'auto',
+              border: 'none',
+              color: '#fff',
+              cursor: 'pointer',
+            }}
+          >
+            <div style={{ fontSize: '0.6rem', opacity: 0.6 }}>SHOP</div>
+            <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#2ECC71' }}>$</div>
+          </button>
+          <button
+            onClick={() => setShowStats(true)}
+            style={{
+              background: 'rgba(0,0,0,0.5)',
+              padding: '0.5rem 0.8rem',
+              borderRadius: '12px',
+              backdropFilter: 'blur(10px)',
+              textAlign: 'center',
+              pointerEvents: 'auto',
+              border: 'none',
+              color: '#fff',
+              cursor: 'pointer',
+            }}
+          >
+            <div style={{ fontSize: '0.6rem', opacity: 0.6 }}>STATS</div>
+            <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#4FC3F7' }}>#</div>
+          </button>
+          <button
+            onClick={() => setShowDailyChallenges(true)}
+            style={{
+              background: 'rgba(0,0,0,0.5)',
+              padding: '0.5rem 0.8rem',
+              borderRadius: '12px',
+              backdropFilter: 'blur(10px)',
+              textAlign: 'center',
+              pointerEvents: 'auto',
+              border: 'none',
+              color: '#fff',
+              cursor: 'pointer',
+            }}
+          >
+            <div style={{ fontSize: '0.6rem', opacity: 0.6 }}>DAILY</div>
+            <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#FF6B35' }}>!</div>
+          </button>
           <div style={{
             background: 'rgba(0,0,0,0.5)',
-            padding: '0.5rem 1rem',
+            padding: '0.5rem 0.8rem',
             borderRadius: '12px',
             backdropFilter: 'blur(10px)',
             textAlign: 'center',
           }}>
-            <div style={{ fontSize: '0.65rem', opacity: 0.6 }}>STARS</div>
-            <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#F7C948' }}>{totalStars}</div>
+            <div style={{ fontSize: '0.6rem', opacity: 0.6 }}>STARS</div>
+            <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#F7C948' }}>{totalStars}</div>
           </div>
           <div style={{
             background: 'rgba(0,0,0,0.5)',
-            padding: '0.5rem 1rem',
+            padding: '0.5rem 0.8rem',
             borderRadius: '12px',
             backdropFilter: 'blur(10px)',
             textAlign: 'center',
           }}>
-            <div style={{ fontSize: '0.65rem', opacity: 0.6 }}>COINS</div>
-            <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#F7C948' }}>{profile?.coins ?? 0}</div>
+            <div style={{ fontSize: '0.6rem', opacity: 0.6 }}>COINS</div>
+            <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#F7C948' }}>{profile?.coins ?? 0}</div>
           </div>
         </div>
       </div>
@@ -155,6 +244,71 @@ function HubUI() {
         }}>
           Choose Your Game
         </p>
+      </div>
+
+      {/* Mode selector */}
+      <div style={{
+        position: 'absolute',
+        bottom: '10rem',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        display: 'flex',
+        gap: '0.4rem',
+        pointerEvents: 'auto',
+      }}>
+        {GAME_MODES.map((m) => (
+          <button
+            key={m.id}
+            onClick={() => setGameMode(m.id)}
+            title={m.description}
+            style={{
+              padding: '0.35rem 0.8rem',
+              borderRadius: '16px',
+              background: gameMode === m.id
+                ? 'rgba(255,255,255,0.2)'
+                : 'rgba(255,255,255,0.05)',
+              color: gameMode === m.id ? '#fff' : '#888',
+              fontWeight: gameMode === m.id ? 700 : 400,
+              fontSize: '0.75rem',
+              border: gameMode === m.id ? '1px solid rgba(255,255,255,0.3)' : '1px solid transparent',
+              cursor: 'pointer',
+            }}
+          >
+            {m.name}
+          </button>
+        ))}
+      </div>
+
+      {/* Difficulty selector */}
+      <div style={{
+        position: 'absolute',
+        bottom: '7.5rem',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        display: 'flex',
+        gap: '0.5rem',
+        pointerEvents: 'auto',
+      }}>
+        {DIFFICULTIES.map((d) => (
+          <button
+            key={d.value}
+            onClick={() => setSelectedDifficulty(d.value)}
+            style={{
+              padding: '0.4rem 1.2rem',
+              borderRadius: '20px',
+              background: selectedDifficulty === d.value
+                ? d.color
+                : 'rgba(255,255,255,0.1)',
+              color: selectedDifficulty === d.value ? '#1A1A2E' : '#aaa',
+              fontWeight: selectedDifficulty === d.value ? 700 : 500,
+              fontSize: '0.85rem',
+              border: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            {d.label}
+          </button>
+        ))}
       </div>
 
       {/* Game selection cards */}
@@ -236,11 +390,20 @@ function HubUI() {
           Menu
         </button>
       </div>
+
+      {showAchievements && <AchievementsPanel onClose={() => setShowAchievements(false)} />}
+      {showShop && <ShopPanel onClose={() => setShowShop(false)} />}
+      {showStats && <StatsPanel onClose={() => setShowStats(false)} />}
+      {showDailyChallenges && <DailyChallenges onClose={() => setShowDailyChallenges(false)} />}
     </div>
   )
 }
 
 export function Hub() {
+  useEffect(() => {
+    audioManager.playMusic('hub')
+  }, [])
+
   return (
     <>
       <ambientLight intensity={0.5} />

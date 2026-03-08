@@ -89,8 +89,48 @@ class AudioManager {
     this.voices.set(name, v)
   }
 
+  unloadSound(name: SoundName) {
+    const s = this.sounds.get(name)
+    if (s) {
+      s.unload()
+      this.sounds.delete(name)
+    }
+  }
+
+  unloadVoice(name: VoiceName) {
+    const v = this.voices.get(name)
+    if (v) {
+      v.unload()
+      this.voices.delete(name)
+    }
+  }
+
+  unloadMusic(name: MusicName) {
+    const m = this.music.get(name)
+    if (m) {
+      if (this.currentMusic === name) {
+        m.stop()
+        this.currentMusic = null
+      }
+      m.unload()
+      this.music.delete(name)
+    }
+  }
+
+  isSoundLoaded(name: string): boolean {
+    return this.sounds.has(name) || this.voices.has(name) || this.music.has(name)
+  }
+
   play(name: SoundName) {
     this.sounds.get(name)?.play()
+  }
+
+  playWithPitch(name: SoundName, pitchMultiplier: number) {
+    const sound = this.sounds.get(name)
+    if (sound) {
+      sound.rate(pitchMultiplier)
+      sound.play()
+    }
   }
 
   playVoice(name: VoiceName) {

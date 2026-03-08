@@ -1,5 +1,6 @@
-import { useEffect, useCallback, useRef } from 'react'
+import { useEffect, useCallback, useRef, useMemo } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
+import * as THREE from 'three'
 import { Skybox } from '@/components/Skybox'
 import { RigidBody, type RapierRigidBody } from '@react-three/rapier'
 import { useGameStore } from '@/stores/useGameStore'
@@ -7,12 +8,59 @@ import { useScoreStore } from '@/stores/useScoreStore'
 import { PhysicsProvider } from '@/core/PhysicsProvider'
 import { Course } from '@/games/minigolf/Course'
 import { useMinigolf } from '@/games/minigolf/useMinigolf'
-import { MINIGOLF_CONFIG, COURSES } from '@/games/minigolf/config'
+import { MINIGOLF_CONFIG, COURSES, getMinigolfConfig } from '@/games/minigolf/config'
 import { ScorePopup } from '@/components/ScorePopup'
 import { Confetti } from '@/components/Confetti'
-import { useGameSession } from '@/hooks/useGameSession'
-import { useGameKeyboard } from '@/hooks/useGameKeyboard'
+import { useGameScene } from '@/hooks/useGameScene'
 import { audioManager } from '@/core/AudioManager'
+
+function GuideLine({ ballPosition }: { ballPosition: [number, number, number] }) {
+  const hasGuideLine = useMinigolf((s) => s.hasGuideLine)
+  const isDragging = useMinigolf((s) => s.isDragging)
+  const dragStartX = useMinigolf((s) => s.dragStartX)
+  const dragStartY = useMinigolf((s) => s.dragStartY)
+  const dragEndX = useMinigolf((s) => s.dragEndX)
+  const dragEndY = useMinigolf((s) => s.dragEndY)
+
+  const lineGeometry = useMemo(() => new THREE.BufferGeometry(), [])
+  const lineMaterial = useMemo(() => new THREE.LineBasicMaterial({ color: '#4FC3F7', transparent: true, opacity: 0.7 }), [])
+  const lineObj = useMemo(() => new THREE.Line(lineGeometry, lineMaterial), [lineGeometry, lineMaterial])
+
+  useFrame(() => {
+    if (!hasGuideLine || !isDragging) return
+
+    const dx = dragStartX - dragEndX
+    const dy = dragStartY - dragEndY
+    const distance = Math.sqrt(dx * dx + dy * dy)
+    if (distance < 1) return
+
+    const dirX = dx / distance
+    const dirZ = dy / distance
+    const power = Math.min(distance * 0.1, MINIGOLF_CONFIG.maxPuttPower)
+
+    const points: number[] = []
+    const lineLength = power * 0.8
+    const segments = 8
+    for (let i = 0; i <= segments; i++) {
+      const t = (i / segments) * lineLength
+      points.push(
+        ballPosition[0] + dirX * t,
+        ballPosition[1] + 0.05,
+        ballPosition[2] + dirZ * t,
+      )
+    }
+
+    lineGeometry.setAttribute(
+      'position',
+      new THREE.Float32BufferAttribute(points, 3),
+    )
+    lineGeometry.attributes.position.needsUpdate = true
+  })
+
+  if (!hasGuideLine || !isDragging) return null
+
+  return <primitive object={lineObj} />
+}
 
 function GolfBall() {
   const ballRef = useRef<RapierRigidBody>(null)
@@ -27,7 +75,6 @@ function GolfBall() {
   const saveBallPosition = useMinigolf((s) => s.saveBallPosition)
   const ballStopped = useMinigolf((s) => s.ballStopped)
   const outOfBounds = useMinigolf((s) => s.outOfBounds)
-  const lastBallPosition = useMinigolf((s) => s.lastBallPosition)
   const resetCounter = useMinigolf((s) => s.resetCounter)
 
   const holeConfig = COURSES[currentHole]
@@ -44,7 +91,6 @@ function GolfBall() {
     if (phase === 'rolling' && ballRef.current) {
       const pos = ballRef.current.translation()
 
-      // Out of bounds: ball fell off the course
       if (pos.y < MINIGOLF_CONFIG.outOfBoundsY) {
         outOfBounds()
         return
@@ -53,14 +99,13 @@ function GolfBall() {
       const vel = ballRef.current.linvel()
       const speed = Math.sqrt(vel.x * vel.x + vel.y * vel.y + vel.z * vel.z)
       if (speed < 0.05) {
-        // Save where ball stopped so next putt starts here
         saveBallPosition([pos.x, pos.y, pos.z])
         ballStopped()
       }
     }
   })
 
-  // Reset ball only on new hole, water hazard, or out-of-bounds (not when ball stops normally)
+  // Reset ball on new hole, water hazard, or out-of-bounds
   useEffect(() => {
     if (ballRef.current) {
       const [tx, ty, tz] = useMinigolf.getState().lastBallPosition
@@ -86,7 +131,6 @@ function GolfBall() {
 
     const handleMouseUp = () => {
       if (isDragging) {
-        // Save current ball position before putting (for water hazard reset)
         if (ballRef.current) {
           const pos = ballRef.current.translation()
           saveBallPosition([pos.x, pos.y, pos.z])
@@ -103,7 +147,7 @@ function GolfBall() {
       }
     }
 
-    // Keyboard controls: Arrow keys for direction, Space to putt
+    // Keyboard controls
     const kbDir = { x: 0, z: 0 }
     const handleKeyDown = (e: KeyboardEvent) => {
       if (phase !== 'aiming') return
@@ -114,17 +158,16 @@ function GolfBall() {
       if (e.code === 'Space') {
         e.preventDefault()
         const dx = kbDir.x || 0
-        const dz = kbDir.z || 1 // default forward
+        const dz = kbDir.z || 1
         const len = Math.sqrt(dx * dx + dz * dz) || 1
         const power = MINIGOLF_CONFIG.maxPuttPower * 0.5
         if (ballRef.current) {
-          // Save ball position before putt (for water hazard reset)
           const pos = ballRef.current.translation()
           useMinigolf.getState().saveBallPosition([pos.x, pos.y, pos.z])
           ballRef.current.setLinvel({
             x: (dx / len) * power,
             y: 0,
-            z: -(dz / len) * power,  // keyboard: up arrow = -Z = toward hole
+            z: -(dz / len) * power,
           }, true)
           useMinigolf.getState().startDrag(0, 0)
           useMinigolf.getState().releasePutt()
@@ -165,6 +208,8 @@ function GolfBall() {
 
 function MinigolfGame() {
   const gamePhase = useGameStore((s) => s.gamePhase)
+  const selectedDifficulty = useGameStore((s) => s.selectedDifficulty)
+  const golfConfig = useMemo(() => getMinigolfConfig(selectedDifficulty), [selectedDifficulty])
   const addScore = useScoreStore((s) => s.addScore)
 
   const golfPhase = useMinigolf((s) => s.phase)
@@ -173,15 +218,9 @@ function MinigolfGame() {
   const ballHoled = useMinigolf((s) => s.ballHoled)
   const resetGame = useMinigolf((s) => s.resetGame)
 
-  const { popups, showConfetti, addPopup, removePopup, triggerConfetti, triggerQuiz, initGame, endGame } = useGameSession()
-  useGameKeyboard()
+  const { popups, showConfetti, addPopup, removePopup, triggerConfetti, triggerQuiz, endGame } = useGameScene('minigolf', () => resetGame(golfConfig.maxStrokes))
 
   const holeConfig = COURSES[currentHole]
-
-  // Initialize
-  useEffect(() => {
-    initGame(resetGame)
-  }, [])
 
   // Handle ball in hole
   const handleBallInHole = useCallback(() => {
@@ -238,7 +277,6 @@ function MinigolfGame() {
   // Game done
   useEffect(() => {
     if (golfPhase === 'done') {
-      // Use total strokes as score (lower is better)
       addScore(totalStrokes)
       endGame()
     }
@@ -265,9 +303,9 @@ function MinigolfGame() {
           onWaterHazard={handleWaterHazard}
         />
         <GolfBall />
+        <GuideLine ballPosition={useMinigolf.getState().lastBallPosition} />
       </PhysicsProvider>
 
-      {/* Score popups */}
       {popups.map((popup) => (
         <ScorePopup
           key={popup.id}
@@ -279,8 +317,6 @@ function MinigolfGame() {
       ))}
 
       {showConfetti && <Confetti position={[holeConfig.holePosition[0], 0.5, holeConfig.holePosition[2]]} />}
-
-      {/* UI overlays now rendered outside Canvas via MinigolfOverlay */}
     </>
   )
 }

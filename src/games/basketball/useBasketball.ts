@@ -25,7 +25,7 @@ interface BasketballState {
   registerMiss: () => void
   resetBall: () => void
   decrementTime: () => boolean
-  resetGame: () => void
+  resetGame: (totalShots?: number, timeSeconds?: number) => void
 }
 
 export const useBasketball = create<BasketballState>((set, get) => ({
@@ -99,9 +99,9 @@ export const useBasketball = create<BasketballState>((set, get) => ({
     return t <= 0
   },
 
-  resetGame: () => set({
-    shotsRemaining: BASKETBALL_CONFIG.totalShots,
-    timeRemaining: BASKETBALL_CONFIG.roundTimeSeconds,
+  resetGame: (totalShots?: number, timeSeconds?: number) => set({
+    shotsRemaining: totalShots ?? BASKETBALL_CONFIG.totalShots,
+    timeRemaining: timeSeconds ?? BASKETBALL_CONFIG.roundTimeSeconds,
     aimAngle: 0,
     power: 0,
     isPowerCharging: false,
