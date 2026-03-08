@@ -1,150 +1,63 @@
-import { useRef, useState } from 'react'
-import { useFrame, useThree } from '@react-three/fiber'
-import { Text, ContactShadows, Html } from '@react-three/drei'
+import { useRef } from 'react'
+import { useFrame } from '@react-three/fiber'
+import { Html } from '@react-three/drei'
 import { Skybox } from '@/components/Skybox'
 import { useGameStore } from '@/stores/useGameStore'
 import { useProgressStore } from '@/stores/useProgressStore'
 import { usePlayerStore } from '@/stores/usePlayerStore'
 import type { Scene } from '@/types'
-import type { Mesh } from 'three'
+import type { Mesh, Group } from 'three'
 
-const PORTALS: { game: Scene; label: string; color: string; position: [number, number, number]; unlockLabel: string }[] = [
-  { game: 'basketball', label: 'Basketball', color: '#FF6B35', position: [-6, 0, -6], unlockLabel: '' },
-  { game: 'soccer', label: 'Soccer', color: '#4CAF50', position: [6, 0, -6], unlockLabel: '3 Stars' },
-  { game: 'bowling', label: 'Bowling', color: '#2196F3', position: [-6, 0, 6], unlockLabel: '8 Stars' },
-  { game: 'minigolf', label: 'Mini-Golf', color: '#9C27B0', position: [6, 0, 6], unlockLabel: '15 Stars' },
+const GAMES: { game: Scene; label: string; emoji: string; color: string; unlockStars: number }[] = [
+  { game: 'basketball', label: 'Basketball', emoji: '🏀', color: '#FF6B35', unlockStars: 0 },
+  { game: 'soccer', label: 'Soccer', emoji: '⚽', color: '#4CAF50', unlockStars: 3 },
+  { game: 'bowling', label: 'Bowling', emoji: '🎳', color: '#2196F3', unlockStars: 8 },
+  { game: 'minigolf', label: 'Mini-Golf', emoji: '⛳', color: '#9C27B0', unlockStars: 15 },
 ]
 
-function Portal({ game, label, color, position, unlockLabel }: typeof PORTALS[number]) {
-  const meshRef = useRef<Mesh>(null)
-  const glowRef = useRef<Mesh>(null)
-  const [hovered, setHovered] = useState(false)
-  const setScene = useGameStore((s) => s.setScene)
-  const isUnlocked = useProgressStore((s) => s.isGameUnlocked(game))
-  const { gl } = useThree()
+/* Small floating orbs in 3D space for visual ambiance */
+function FloatingOrbs() {
+  const groupRef = useRef<Group>(null)
 
-  useFrame((state, delta) => {
-    if (meshRef.current) {
-      meshRef.current.rotation.y += delta * 0.5
-    }
-    if (glowRef.current) {
-      const scale = 1 + Math.sin(state.clock.elapsedTime * 3) * 0.1
-      glowRef.current.scale.setScalar(scale)
+  useFrame((state) => {
+    if (groupRef.current) {
+      groupRef.current.rotation.y = state.clock.elapsedTime * 0.08
     }
   })
 
-  const handleClick = () => {
-    if (isUnlocked) setScene(game)
-  }
+  return (
+    <group ref={groupRef}>
+      {GAMES.map((g, i) => {
+        const angle = (i / GAMES.length) * Math.PI * 2 - Math.PI / 4
+        const x = Math.cos(angle) * 8
+        const z = Math.sin(angle) * 8
+        return <FloatingOrb key={g.game} color={g.color} position={[x, 2 + Math.sin(i) * 0.5, z]} />
+      })}
+    </group>
+  )
+}
 
-  const handlePointerOver = () => {
-    if (isUnlocked) {
-      setHovered(true)
-      gl.domElement.style.cursor = 'pointer'
+function FloatingOrb({ color, position }: { color: string; position: [number, number, number] }) {
+  const meshRef = useRef<Mesh>(null)
+
+  useFrame((state, delta) => {
+    if (meshRef.current) {
+      meshRef.current.rotation.y += delta * 0.6
+      meshRef.current.position.y = position[1] + Math.sin(state.clock.elapsedTime * 1.5 + position[0]) * 0.3
     }
-  }
-
-  const handlePointerOut = () => {
-    setHovered(false)
-    gl.domElement.style.cursor = 'default'
-  }
-
-  const portalColor = isUnlocked ? color : '#555'
-  const emissiveIntensity = isUnlocked ? (hovered ? 2 : 0.5) : 0
+  })
 
   return (
-    <group position={position}>
-      <mesh position={[0, 0.05, 0]} receiveShadow>
-        <cylinderGeometry args={[2, 2.2, 0.1, 32]} />
-        <meshStandardMaterial color={portalColor} opacity={0.8} transparent />
-      </mesh>
-
-      <mesh ref={glowRef} position={[0, 0.15, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[1.8, 0.08, 16, 64]} />
-        <meshStandardMaterial
-          color={portalColor}
-          emissive={portalColor}
-          emissiveIntensity={emissiveIntensity}
-        />
-      </mesh>
-
-      <mesh
-        ref={meshRef}
-        position={[0, 1.5, 0]}
-        castShadow
-        onClick={handleClick}
-        onPointerOver={handlePointerOver}
-        onPointerOut={handlePointerOut}
-      >
-        <icosahedronGeometry args={[0.6, 1]} />
-        <meshStandardMaterial
-          color={portalColor}
-          emissive={portalColor}
-          emissiveIntensity={hovered ? 1.5 : 0.3}
-          roughness={0.3}
-          metalness={0.2}
-        />
-      </mesh>
-
-      <Text
-        position={[0, 3, 0]}
-        fontSize={0.5}
-        fontWeight={700}
-        color={isUnlocked ? '#fff' : '#888'}
-        anchorX="center"
-        anchorY="bottom"
-        outlineWidth={0.03}
-        outlineColor="#000"
-      >
-        {label}
-      </Text>
-
-      {!isUnlocked && (
-        <Text
-          position={[0, 2.5, 0]}
-          fontSize={0.3}
-          color="#F7C948"
-          anchorX="center"
-          anchorY="bottom"
-        >
-          {unlockLabel} to Unlock
-        </Text>
-      )}
-    </group>
-  )
-}
-
-function HubGround() {
-  return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} receiveShadow>
-      <planeGeometry args={[50, 50]} />
-      <meshStandardMaterial color="#2D5A27" roughness={0.9} />
+    <mesh ref={meshRef} position={position} castShadow>
+      <icosahedronGeometry args={[0.5, 1]} />
+      <meshStandardMaterial
+        color={color}
+        emissive={color}
+        emissiveIntensity={0.4}
+        roughness={0.3}
+        metalness={0.3}
+      />
     </mesh>
-  )
-}
-
-function AcademyTitle() {
-  return (
-    <group position={[0, 5, -12]}>
-      <Text
-        fontSize={1.5}
-        fontWeight={700}
-        color="#FF6B35"
-        anchorX="center"
-        outlineWidth={0.05}
-        outlineColor="#000"
-      >
-        Three-J Sports Academy
-      </Text>
-      <Text
-        position={[0, -1.2, 0]}
-        fontSize={0.5}
-        color="#87CEEB"
-        anchorX="center"
-      >
-        Choose Your Game!
-      </Text>
-    </group>
   )
 }
 
@@ -162,7 +75,7 @@ function HubUI() {
 
   return (
     <div style={{ pointerEvents: 'none' }}>
-      {/* Top bar: player info */}
+      {/* Top bar */}
       <div style={{
         position: 'absolute',
         top: '1rem',
@@ -173,13 +86,14 @@ function HubUI() {
         alignItems: 'center',
       }}>
         <div style={{
-          background: 'rgba(0,0,0,0.6)',
+          background: 'rgba(0,0,0,0.5)',
           padding: '0.5rem 1rem',
           borderRadius: '12px',
-          backdropFilter: 'blur(8px)',
+          backdropFilter: 'blur(10px)',
           display: 'flex',
           alignItems: 'center',
-          gap: '1rem',
+          gap: '0.8rem',
+          pointerEvents: 'auto',
         }}>
           <span style={{ fontSize: '1.5rem' }}>{profile?.avatar ?? '?'}</span>
           <div>
@@ -190,20 +104,20 @@ function HubUI() {
 
         <div style={{ display: 'flex', gap: '0.8rem' }}>
           <div style={{
-            background: 'rgba(0,0,0,0.6)',
+            background: 'rgba(0,0,0,0.5)',
             padding: '0.5rem 1rem',
             borderRadius: '12px',
-            backdropFilter: 'blur(8px)',
+            backdropFilter: 'blur(10px)',
             textAlign: 'center',
           }}>
             <div style={{ fontSize: '0.65rem', opacity: 0.6 }}>STARS</div>
             <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#F7C948' }}>{totalStars}</div>
           </div>
           <div style={{
-            background: 'rgba(0,0,0,0.6)',
+            background: 'rgba(0,0,0,0.5)',
             padding: '0.5rem 1rem',
             borderRadius: '12px',
-            backdropFilter: 'blur(8px)',
+            backdropFilter: 'blur(10px)',
             textAlign: 'center',
           }}>
             <div style={{ fontSize: '0.65rem', opacity: 0.6 }}>COINS</div>
@@ -212,51 +126,113 @@ function HubUI() {
         </div>
       </div>
 
-      {/* Bottom: quick travel buttons */}
+      {/* Center title */}
       <div style={{
         position: 'absolute',
-        bottom: '1.5rem',
+        top: '5rem',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        textAlign: 'center',
+      }}>
+        <h1 style={{
+          fontSize: 'clamp(1.8rem, 5vw, 3rem)',
+          fontWeight: 700,
+          background: 'linear-gradient(90deg, #FFD700, #FF6B6B, #FF8E53, #4ECDC4, #A18CD1, #FFD700)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text',
+          marginBottom: '0.2rem',
+          filter: 'drop-shadow(0 3px 10px rgba(0,0,0,0.4))',
+        }}>
+          Athlete Domains
+        </h1>
+        <p style={{
+          fontSize: 'clamp(0.8rem, 2vw, 1rem)',
+          color: 'rgba(255,255,255,0.8)',
+          textShadow: '0 2px 8px rgba(0,0,0,0.5)',
+          letterSpacing: '2px',
+          textTransform: 'uppercase',
+        }}>
+          Choose Your Game
+        </p>
+      </div>
+
+      {/* Game selection cards */}
+      <div style={{
+        position: 'absolute',
+        bottom: '2.5rem',
         left: '50%',
         transform: 'translateX(-50%)',
         display: 'flex',
-        gap: '0.6rem',
+        gap: '1rem',
         pointerEvents: 'auto',
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+        padding: '0 1rem',
       }}>
-        {PORTALS.map((p) => {
-          const unlocked = isGameUnlocked(p.game)
+        {GAMES.map((g) => {
+          const unlocked = isGameUnlocked(g.game)
           return (
             <button
-              key={p.game}
-              onClick={() => unlocked && setScene(p.game)}
+              key={g.game}
+              onClick={() => unlocked && setScene(g.game)}
+              aria-label={unlocked ? `Play ${g.label}` : `${g.label} - locked, need ${g.unlockStars} stars`}
               style={{
-                padding: '0.5rem 1.2rem',
-                borderRadius: '20px',
-                fontSize: '0.85rem',
-                fontWeight: 600,
-                background: unlocked ? p.color : 'rgba(100,100,100,0.5)',
+                width: '140px',
+                padding: '1.2rem 0.8rem',
+                borderRadius: '18px',
+                background: unlocked
+                  ? `linear-gradient(160deg, ${g.color}DD, ${g.color}88)`
+                  : 'rgba(80,80,80,0.5)',
+                backdropFilter: 'blur(12px)',
+                border: unlocked
+                  ? `2px solid ${g.color}`
+                  : '2px solid rgba(255,255,255,0.1)',
                 color: unlocked ? '#fff' : '#888',
                 cursor: unlocked ? 'pointer' : 'default',
-                opacity: unlocked ? 1 : 0.5,
-                border: 'none',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '0.4rem',
+                boxShadow: unlocked
+                  ? `0 6px 24px ${g.color}55`
+                  : 'none',
+                opacity: unlocked ? 1 : 0.6,
               }}
             >
-              {p.label}
+              <span style={{ fontSize: '2.2rem', filter: unlocked ? 'none' : 'grayscale(1)' }}>
+                {g.emoji}
+              </span>
+              <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{g.label}</span>
+              {!unlocked && (
+                <span style={{ fontSize: '0.7rem', color: '#F7C948' }}>
+                  {g.unlockStars} Stars
+                </span>
+              )}
             </button>
           )
         })}
         <button
           onClick={handleBackToMenu}
           style={{
-            padding: '0.5rem 1.2rem',
-            borderRadius: '20px',
-            fontSize: '0.85rem',
-            fontWeight: 600,
+            width: '140px',
+            padding: '1.2rem 0.8rem',
+            borderRadius: '18px',
             background: 'rgba(255,255,255,0.1)',
+            backdropFilter: 'blur(12px)',
+            border: '2px solid rgba(255,255,255,0.2)',
             color: '#fff',
-            border: '1px solid rgba(255,255,255,0.2)',
             cursor: 'pointer',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.4rem',
+            fontWeight: 600,
+            fontSize: '0.95rem',
           }}
         >
+          <span style={{ fontSize: '2.2rem' }}>🏠</span>
           Menu
         </button>
       </div>
@@ -267,29 +243,22 @@ function HubUI() {
 export function Hub() {
   return (
     <>
-      <ambientLight intensity={0.4} />
+      <ambientLight intensity={0.5} />
       <directionalLight
         position={[10, 15, 10]}
-        intensity={1.2}
+        intensity={1}
         castShadow
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
-        shadow-camera-far={50}
-        shadow-camera-left={-20}
-        shadow-camera-right={20}
-        shadow-camera-top={20}
-        shadow-camera-bottom={-20}
+        shadow-mapSize-width={1024}
+        shadow-mapSize-height={1024}
+        shadow-camera-far={30}
+        shadow-camera-left={-15}
+        shadow-camera-right={15}
+        shadow-camera-top={15}
+        shadow-camera-bottom={-15}
       />
       <Skybox scene="hub" />
-      <fog attach="fog" args={['#87CEEB', 30, 60]} />
 
-      <HubGround />
-      <ContactShadows position={[0, 0, 0]} opacity={0.4} scale={50} blur={2} />
-      <AcademyTitle />
-
-      {PORTALS.map((portal) => (
-        <Portal key={portal.game} {...portal} />
-      ))}
+      <FloatingOrbs />
 
       <Html fullscreen>
         <HubUI />

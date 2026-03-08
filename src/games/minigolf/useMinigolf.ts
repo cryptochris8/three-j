@@ -16,6 +16,7 @@ interface MinigolfState {
   isDragging: boolean
 
   lastBallPosition: [number, number, number]
+  resetCounter: number
 
   startDrag: (x: number, y: number) => void
   updateDrag: (x: number, y: number) => void
@@ -24,6 +25,7 @@ interface MinigolfState {
   ballStopped: () => void
   ballHoled: () => void
   waterHazard: () => void
+  outOfBounds: () => void
   nextHole: () => void
   getCurrentHoleConfig: () => typeof COURSES[0]
   resetGame: () => void
@@ -41,6 +43,7 @@ export const useMinigolf = create<MinigolfState>((set, get) => ({
   dragEndY: 0,
   isDragging: false,
   lastBallPosition: COURSES[0].teePosition,
+  resetCounter: 0,
 
   startDrag: (x, y) => set({ isDragging: true, dragStartX: x, dragStartY: y, dragEndX: x, dragEndY: y }),
 
@@ -51,7 +54,7 @@ export const useMinigolf = create<MinigolfState>((set, get) => ({
     const dx = dragStartX - dragEndX
     const dy = dragStartY - dragEndY
     const distance = Math.sqrt(dx * dx + dy * dy)
-    const power = Math.min(distance * 0.05, MINIGOLF_CONFIG.maxPuttPower)
+    const power = Math.min(distance * 0.1, MINIGOLF_CONFIG.maxPuttPower)
 
     if (power < MINIGOLF_CONFIG.minPuttPower) {
       set({ isDragging: false })
@@ -100,10 +103,21 @@ export const useMinigolf = create<MinigolfState>((set, get) => ({
   waterHazard: () => {
     const { phase } = get()
     if (phase !== 'rolling') return
-    // Add 1 penalty stroke and return to aiming at lastBallPosition
+    // Add 1 penalty stroke and reset ball to lastBallPosition
     set((s) => ({
       phase: 'aiming',
       strokes: s.strokes + 1,
+      resetCounter: s.resetCounter + 1,
+    }))
+  },
+
+  outOfBounds: () => {
+    const { phase } = get()
+    if (phase !== 'rolling') return
+    // Reset ball to lastBallPosition (no penalty)
+    set((s) => ({
+      phase: 'aiming',
+      resetCounter: s.resetCounter + 1,
     }))
   },
 
@@ -113,13 +127,14 @@ export const useMinigolf = create<MinigolfState>((set, get) => ({
       set({ phase: 'done' })
     } else {
       const nextHoleIdx = currentHole + 1
-      set({
+      set((s) => ({
         currentHole: nextHoleIdx,
         phase: 'aiming',
         strokes: 0,
         isDragging: false,
         lastBallPosition: COURSES[nextHoleIdx].teePosition,
-      })
+        resetCounter: s.resetCounter + 1,
+      }))
     }
   },
 

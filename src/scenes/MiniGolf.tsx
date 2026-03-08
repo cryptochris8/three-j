@@ -26,7 +26,9 @@ function GolfBall() {
   const releasePutt = useMinigolf((s) => s.releasePutt)
   const saveBallPosition = useMinigolf((s) => s.saveBallPosition)
   const ballStopped = useMinigolf((s) => s.ballStopped)
+  const outOfBounds = useMinigolf((s) => s.outOfBounds)
   const lastBallPosition = useMinigolf((s) => s.lastBallPosition)
+  const resetCounter = useMinigolf((s) => s.resetCounter)
 
   const holeConfig = COURSES[currentHole]
 
@@ -37,33 +39,36 @@ function GolfBall() {
     camera.lookAt(tx, 0, tz - 2)
   }, [camera, currentHole, holeConfig])
 
-  // Ball stopped check
+  // Ball stopped check + out-of-bounds detection
   useFrame(() => {
     if (phase === 'rolling' && ballRef.current) {
+      const pos = ballRef.current.translation()
+
+      // Out of bounds: ball fell off the course
+      if (pos.y < MINIGOLF_CONFIG.outOfBoundsY) {
+        outOfBounds()
+        return
+      }
+
       const vel = ballRef.current.linvel()
       const speed = Math.sqrt(vel.x * vel.x + vel.y * vel.y + vel.z * vel.z)
       if (speed < 0.05) {
+        // Save where ball stopped so next putt starts here
+        saveBallPosition([pos.x, pos.y, pos.z])
         ballStopped()
       }
     }
-
-    // Reset ball position when aiming and not on first stroke
-    if (phase === 'aiming' && ballRef.current) {
-      // Keep ball where it stopped (or at tee for first stroke)
-    }
   })
 
-  // Reset ball to lastBallPosition (tee on new hole, or pre-putt spot after water hazard)
-  const lastResetPos = useRef(lastBallPosition)
-  lastResetPos.current = lastBallPosition
+  // Reset ball only on new hole, water hazard, or out-of-bounds (not when ball stops normally)
   useEffect(() => {
-    if (ballRef.current && phase === 'aiming') {
-      const [tx, ty, tz] = lastResetPos.current
+    if (ballRef.current) {
+      const [tx, ty, tz] = useMinigolf.getState().lastBallPosition
       ballRef.current.setTranslation({ x: tx, y: ty, z: tz }, true)
       ballRef.current.setLinvel({ x: 0, y: 0, z: 0 }, true)
       ballRef.current.setAngvel({ x: 0, y: 0, z: 0 }, true)
     }
-  }, [currentHole, phase])
+  }, [resetCounter])
 
   // Mouse controls for slingshot putt
   useEffect(() => {
@@ -92,7 +97,7 @@ function GolfBall() {
           ballRef.current.setLinvel({
             x: dirX * power,
             y: 0,
-            z: -dirZ * power,
+            z: dirZ * power,
           }, true)
         }
       }
@@ -119,7 +124,7 @@ function GolfBall() {
           ballRef.current.setLinvel({
             x: (dx / len) * power,
             y: 0,
-            z: -(dz / len) * power,
+            z: -(dz / len) * power,  // keyboard: up arrow = -Z = toward hole
           }, true)
           useMinigolf.getState().startDrag(0, 0)
           useMinigolf.getState().releasePutt()

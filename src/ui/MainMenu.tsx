@@ -1,7 +1,12 @@
 import { usePlayerStore } from '@/stores/usePlayerStore'
 import { useGameStore } from '@/stores/useGameStore'
 import { audioManager } from '@/core/AudioManager'
-import { COLORS } from '@/core/constants'
+
+const PROFILE_COLORS = [
+  { bg: 'linear-gradient(135deg, #FF6B6B, #FF8E53)', shadow: 'rgba(255,107,83,0.5)' },
+  { bg: 'linear-gradient(135deg, #4ECDC4, #44CF6C)', shadow: 'rgba(78,205,196,0.5)' },
+  { bg: 'linear-gradient(135deg, #A18CD1, #FBC2EB)', shadow: 'rgba(161,140,209,0.5)' },
+]
 
 export function MainMenu() {
   const profiles = usePlayerStore((s) => s.profiles)
@@ -28,28 +33,57 @@ export function MainMenu() {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        background: `linear-gradient(135deg, ${COLORS.dark} 0%, #16213E 50%, #0F3460 100%)`,
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 30%, #f093fb 60%, #f5576c 100%)',
         zIndex: 100,
+        overflow: 'hidden',
       }}
     >
+      {/* Decorative floating circles */}
+      <div style={{
+        position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden',
+      }}>
+        <div style={{
+          position: 'absolute', top: '-8%', left: '-5%', width: '300px', height: '300px',
+          borderRadius: '50%', background: 'rgba(255,255,255,0.08)',
+        }} />
+        <div style={{
+          position: 'absolute', bottom: '-10%', right: '-8%', width: '400px', height: '400px',
+          borderRadius: '50%', background: 'rgba(255,255,255,0.06)',
+        }} />
+        <div style={{
+          position: 'absolute', top: '30%', right: '5%', width: '150px', height: '150px',
+          borderRadius: '50%', background: 'rgba(255,255,255,0.05)',
+        }} />
+        <div style={{
+          position: 'absolute', bottom: '20%', left: '8%', width: '200px', height: '200px',
+          borderRadius: '50%', background: 'rgba(255,255,255,0.04)',
+        }} />
+      </div>
+
       <h1 style={{
-        fontSize: 'clamp(2.5rem, 8vw, 4rem)',
+        fontSize: 'clamp(2.8rem, 9vw, 5rem)',
         fontWeight: 700,
-        background: `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.accent})`,
+        background: 'linear-gradient(90deg, #FFD700, #FF6B6B, #FF8E53, #4ECDC4, #A18CD1, #FFD700)',
         WebkitBackgroundClip: 'text',
         WebkitTextFillColor: 'transparent',
-        marginBottom: '0.5rem',
-        textShadow: 'none',
+        backgroundClip: 'text',
+        marginBottom: '0.3rem',
+        letterSpacing: '-1px',
+        position: 'relative',
+        filter: 'drop-shadow(0 4px 15px rgba(0,0,0,0.3))',
       }}>
-        Three-J
+        Athlete Domains
       </h1>
+
       <p style={{
-        fontSize: 'clamp(1rem, 3vw, 1.5rem)',
-        color: COLORS.sky,
+        fontSize: 'clamp(0.9rem, 2.5vw, 1.2rem)',
+        color: 'rgba(255,255,255,0.85)',
         marginBottom: '3rem',
         fontWeight: 500,
+        letterSpacing: '3px',
+        textTransform: 'uppercase',
       }}>
-        Sports Academy
+        Choose Your Player
       </p>
 
       <div
@@ -62,39 +96,50 @@ export function MainMenu() {
           flexWrap: 'wrap',
           justifyContent: 'center',
           padding: '0 1rem',
+          position: 'relative',
         }}
       >
-        {profiles.map((profile) => (
-          <button
-            key={profile.id}
-            role="radio"
-            aria-checked={activeProfileId === profile.id}
-            aria-label={`Select ${profile.name}, age ${profile.age}`}
-            onClick={() => setActiveProfile(profile.id)}
-            style={{
-              width: '140px',
-              padding: '1.2rem 1rem',
-              borderRadius: '16px',
-              background: activeProfileId === profile.id
-                ? `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.accent})`
-                : 'rgba(255,255,255,0.08)',
-              color: activeProfileId === profile.id ? COLORS.dark : COLORS.white,
-              fontSize: '1rem',
-              fontWeight: 600,
-              border: activeProfileId === profile.id
-                ? 'none'
-                : '2px solid rgba(255,255,255,0.15)',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '0.5rem',
-            }}
-          >
-            <span style={{ fontSize: '2rem' }}>{profile.avatar}</span>
-            <span>{profile.name}</span>
-            <span style={{ fontSize: '0.75rem', opacity: 0.8 }}>Age {profile.age}</span>
-          </button>
-        ))}
+        {profiles.map((profile, i) => {
+          const isActive = activeProfileId === profile.id
+          const colors = PROFILE_COLORS[i % PROFILE_COLORS.length]
+          return (
+            <button
+              key={profile.id}
+              role="radio"
+              aria-checked={isActive}
+              aria-label={`Select ${profile.name}, age ${profile.age}`}
+              onClick={() => setActiveProfile(profile.id)}
+              style={{
+                width: '150px',
+                padding: '1.5rem 1rem',
+                borderRadius: '20px',
+                background: isActive
+                  ? colors.bg
+                  : 'rgba(255,255,255,0.15)',
+                color: '#FFFFFF',
+                fontSize: '1rem',
+                fontWeight: 600,
+                border: isActive
+                  ? '3px solid rgba(255,255,255,0.6)'
+                  : '3px solid rgba(255,255,255,0.2)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '0.5rem',
+                backdropFilter: 'blur(10px)',
+                boxShadow: isActive
+                  ? `0 8px 32px ${colors.shadow}, 0 0 0 2px rgba(255,255,255,0.3)`
+                  : '0 4px 16px rgba(0,0,0,0.15)',
+                transform: isActive ? 'scale(1.05)' : 'scale(1)',
+                transition: 'transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease',
+              }}
+            >
+              <span style={{ fontSize: '2.5rem', filter: isActive ? 'drop-shadow(0 2px 8px rgba(0,0,0,0.3))' : 'none' }}>{profile.avatar}</span>
+              <span style={{ fontWeight: 700 }}>{profile.name}</span>
+              <span style={{ fontSize: '0.75rem', opacity: 0.85 }}>Age {profile.age}</span>
+            </button>
+          )
+        })}
       </div>
 
       <button
@@ -102,18 +147,21 @@ export function MainMenu() {
         disabled={!activeProfileId}
         aria-label="Start game"
         style={{
-          padding: '1rem 3rem',
-          fontSize: 'clamp(1rem, 3vw, 1.4rem)',
+          padding: '1.1rem 3.5rem',
+          fontSize: 'clamp(1.1rem, 3vw, 1.5rem)',
           fontWeight: 700,
           borderRadius: '50px',
           background: activeProfileId
-            ? `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.accent})`
-            : 'rgba(255,255,255,0.1)',
-          color: activeProfileId ? COLORS.dark : '#666',
+            ? 'linear-gradient(135deg, #FFD700, #FFA500, #FF6B35)'
+            : 'rgba(255,255,255,0.15)',
+          color: activeProfileId ? '#1A1A2E' : 'rgba(255,255,255,0.4)',
           cursor: activeProfileId ? 'pointer' : 'default',
           boxShadow: activeProfileId
-            ? `0 8px 32px rgba(255,107,53,0.4)`
+            ? '0 8px 32px rgba(255,165,0,0.5), 0 0 60px rgba(255,215,0,0.2)'
             : 'none',
+          letterSpacing: '2px',
+          position: 'relative',
+          border: 'none',
         }}
       >
         PLAY!

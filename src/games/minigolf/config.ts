@@ -16,12 +16,13 @@ export const MINIGOLF_CONFIG = {
   ballRadius: 0.025,
   ballMass: 0.046,
   ballRestitution: 0.5,
-  ballLinearDamping: 2.5,
-  maxPuttPower: 8,
-  minPuttPower: 0.5,
+  ballLinearDamping: 1.2,
+  maxPuttPower: 18,
+  minPuttPower: 0.3,
   holeSinkMaxSpeed: 2.0,
   holeRadius: 0.05,
   maxStrokes: 8,
+  outOfBoundsY: -2,
 } as const
 
 export const COURSES: HoleConfig[] = [
