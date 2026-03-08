@@ -21,14 +21,31 @@ type SoundName =
   | 'unlock'
   | 'confetti'
 
+type VoiceName =
+  | 'welcome'
+  | 'swish'
+  | 'goal'
+  | 'strike'
+  | 'spare'
+  | 'greatPutt'
+  | 'greatSave'
+  | 'gameOver'
+  | 'quizTime'
+  | 'quizCorrect'
+  | 'quizWrong'
+  | 'streak'
+
 type MusicName = 'menu' | 'hub' | 'basketball' | 'soccer' | 'bowling' | 'minigolf'
 
 class AudioManager {
   private sounds: Map<string, Howl> = new Map()
   private music: Map<string, Howl> = new Map()
+  private voices: Map<string, Howl> = new Map()
   private currentMusic: string | null = null
+  private currentVoice: Howl | null = null
   private _sfxVolume = 0.7
   private _musicVolume = 0.4
+  private _voiceVolume = 0.85
 
   get sfxVolume() {
     return this._sfxVolume
@@ -36,6 +53,10 @@ class AudioManager {
 
   get musicVolume() {
     return this._musicVolume
+  }
+
+  get voiceVolume() {
+    return this._voiceVolume
   }
 
   setSfxVolume(vol: number) {
@@ -48,6 +69,11 @@ class AudioManager {
     this.music.forEach((m) => m.volume(vol))
   }
 
+  setVoiceVolume(vol: number) {
+    this._voiceVolume = vol
+    this.voices.forEach((v) => v.volume(vol))
+  }
+
   loadSound(name: SoundName, src: string) {
     const sound = new Howl({ src: [src], volume: this._sfxVolume })
     this.sounds.set(name, sound)
@@ -58,16 +84,34 @@ class AudioManager {
     this.music.set(name, m)
   }
 
+  loadVoice(name: VoiceName, src: string) {
+    const v = new Howl({ src: [src], volume: this._voiceVolume })
+    this.voices.set(name, v)
+  }
+
   play(name: SoundName) {
     this.sounds.get(name)?.play()
+  }
+
+  playVoice(name: VoiceName) {
+    // Stop any currently playing voice to avoid overlap
+    if (this.currentVoice && this.currentVoice.playing()) {
+      this.currentVoice.stop()
+    }
+    const v = this.voices.get(name)
+    if (v) {
+      v.play()
+      this.currentVoice = v
+    }
   }
 
   playMusic(name: MusicName) {
     if (this.currentMusic === name) return
     if (this.currentMusic) {
-      this.music.get(this.currentMusic)?.fade(this._musicVolume, 0, 500)
+      const prev = this.currentMusic
+      this.music.get(prev)?.fade(this._musicVolume, 0, 500)
       setTimeout(() => {
-        this.music.get(this.currentMusic!)?.stop()
+        this.music.get(prev)?.stop()
       }, 500)
     }
     const m = this.music.get(name)
@@ -81,18 +125,22 @@ class AudioManager {
 
   stopMusic() {
     if (this.currentMusic) {
-      this.music.get(this.currentMusic)?.fade(this._musicVolume, 0, 500)
+      const prev = this.currentMusic
+      this.music.get(prev)?.fade(this._musicVolume, 0, 500)
       setTimeout(() => {
-        this.music.get(this.currentMusic!)?.stop()
-        this.currentMusic = null
+        this.music.get(prev)?.stop()
       }, 500)
+      this.currentMusic = null
     }
   }
 
   stopAll() {
     this.sounds.forEach((s) => s.stop())
+    this.voices.forEach((v) => v.stop())
+    this.currentVoice = null
     this.stopMusic()
   }
 }
 
+export type { SoundName, VoiceName, MusicName }
 export const audioManager = new AudioManager()

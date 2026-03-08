@@ -3,6 +3,10 @@
     "three-js-mcp": {
       "command": "node",
       "args": ["C:\\Users\\chris\\three-js-mcp\\build\\main.js"]
+    },
+    "mcp-three": {
+      "command": "cmd",
+      "args": ["/c", "npx", "-y", "mcp-three"]
     }
   }
 }

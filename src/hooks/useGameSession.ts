@@ -4,6 +4,7 @@ import { useScoreStore } from '@/stores/useScoreStore'
 import { useEducationStore } from '@/stores/useEducationStore'
 import { usePlayerStore } from '@/stores/usePlayerStore'
 import { getQuestionEngine } from '@/education/QuestionEngine'
+import { audioManager } from '@/core/AudioManager'
 import type { QuestionCategory } from '@/types'
 
 interface Popup {
@@ -37,6 +38,14 @@ export function useGameSession() {
         position: [0, 3, 0],
         color: lastQuizResult ? '#2ECC71' : '#E74C3C',
       }])
+
+      // Play voice feedback for quiz result
+      if (lastQuizResult) {
+        audioManager.playVoice('quizCorrect')
+      } else {
+        audioManager.playVoice('quizWrong')
+      }
+
       setLastQuizResult(null)
     }
   }, [gamePhase, lastQuizResult, setLastQuizResult])
@@ -59,6 +68,7 @@ export function useGameSession() {
 
   const triggerConfetti = useCallback((durationMs = 3000) => {
     setShowConfetti(true)
+    audioManager.play('confetti')
     setTimeout(() => setShowConfetti(false), durationMs)
   }, [])
 
@@ -66,10 +76,12 @@ export function useGameSession() {
     const engine = getQuestionEngine(answeredIds)
     const question = engine.getQuestion(difficulty, category, activeProfile?.age ?? 8)
     useEducationStore.getState().setCurrentQuestion(question)
+    audioManager.playVoice('quizTime')
     setGamePhase('quiz')
   }, [answeredIds, difficulty, activeProfile, setGamePhase])
 
   const endGame = useCallback(() => {
+    audioManager.playVoice('gameOver')
     setGamePhase('gameover')
   }, [setGamePhase])
 

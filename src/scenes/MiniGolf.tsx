@@ -12,6 +12,7 @@ import { ScorePopup } from '@/components/ScorePopup'
 import { Confetti } from '@/components/Confetti'
 import { useGameSession } from '@/hooks/useGameSession'
 import { useGameKeyboard } from '@/hooks/useGameKeyboard'
+import { audioManager } from '@/core/AudioManager'
 
 function GolfBall() {
   const ballRef = useRef<RapierRigidBody>(null)
@@ -23,7 +24,9 @@ function GolfBall() {
   const startDrag = useMinigolf((s) => s.startDrag)
   const updateDrag = useMinigolf((s) => s.updateDrag)
   const releasePutt = useMinigolf((s) => s.releasePutt)
+  const saveBallPosition = useMinigolf((s) => s.saveBallPosition)
   const ballStopped = useMinigolf((s) => s.ballStopped)
+  const lastBallPosition = useMinigolf((s) => s.lastBallPosition)
 
   const holeConfig = COURSES[currentHole]
 
@@ -50,15 +53,17 @@ function GolfBall() {
     }
   })
 
-  // Reset ball to tee on new hole
+  // Reset ball to lastBallPosition (tee on new hole, or pre-putt spot after water hazard)
+  const lastResetPos = useRef(lastBallPosition)
+  lastResetPos.current = lastBallPosition
   useEffect(() => {
     if (ballRef.current && phase === 'aiming') {
-      const [tx, ty, tz] = holeConfig.teePosition
+      const [tx, ty, tz] = lastResetPos.current
       ballRef.current.setTranslation({ x: tx, y: ty, z: tz }, true)
       ballRef.current.setLinvel({ x: 0, y: 0, z: 0 }, true)
       ballRef.current.setAngvel({ x: 0, y: 0, z: 0 }, true)
     }
-  }, [currentHole])
+  }, [currentHole, phase])
 
   // Mouse controls for slingshot putt
   useEffect(() => {
@@ -76,8 +81,14 @@ function GolfBall() {
 
     const handleMouseUp = () => {
       if (isDragging) {
+        // Save current ball position before putting (for water hazard reset)
+        if (ballRef.current) {
+          const pos = ballRef.current.translation()
+          saveBallPosition([pos.x, pos.y, pos.z])
+        }
         const { dirX, dirZ, power } = releasePutt()
         if (power > 0 && ballRef.current) {
+          audioManager.play('putt')
           ballRef.current.setLinvel({
             x: dirX * power,
             y: 0,
@@ -102,6 +113,9 @@ function GolfBall() {
         const len = Math.sqrt(dx * dx + dz * dz) || 1
         const power = MINIGOLF_CONFIG.maxPuttPower * 0.5
         if (ballRef.current) {
+          // Save ball position before putt (for water hazard reset)
+          const pos = ballRef.current.translation()
+          useMinigolf.getState().saveBallPosition([pos.x, pos.y, pos.z])
           ballRef.current.setLinvel({
             x: (dx / len) * power,
             y: 0,
@@ -176,6 +190,9 @@ function MinigolfGame() {
     let text = ''
     let color = '#F7C948'
 
+    audioManager.play('holeIn')
+    audioManager.playVoice('greatPutt')
+
     if (strokesTaken === 1) {
       text = 'HOLE IN ONE!'
       color = '#FFD700'
@@ -195,9 +212,14 @@ function MinigolfGame() {
   }, [ballHoled, holeConfig, triggerConfetti, addPopup])
 
   // Handle water hazard
+  const waterHazard = useMinigolf((s) => s.waterHazard)
   const handleWaterHazard = useCallback(() => {
-    addPopup('Water! +1 stroke', [0, 1, 0], '#1E90FF')
-  }, [addPopup])
+    audioManager.play('splash')
+    waterHazard()
+    const mgState = useMinigolf.getState()
+    const [bx, , bz] = mgState.lastBallPosition
+    addPopup('Water! +1 stroke', [bx, 1, bz], '#1E90FF')
+  }, [waterHazard, addPopup])
 
   // Handle holed -> quiz or next hole
   useEffect(() => {

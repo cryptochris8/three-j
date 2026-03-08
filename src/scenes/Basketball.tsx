@@ -12,6 +12,7 @@ import { ScorePopup } from '@/components/ScorePopup'
 import { Confetti } from '@/components/Confetti'
 import { useGameSession } from '@/hooks/useGameSession'
 import { useGameKeyboard } from '@/hooks/useGameKeyboard'
+import { audioManager } from '@/core/AudioManager'
 
 // Shared state for the UI overlay (read by BasketballUI outside Canvas)
 import { create } from 'zustand'
@@ -118,6 +119,7 @@ function BasketballGame() {
       if (newStreak >= BASKETBALL_CONFIG.streakBonusThreshold) {
         points *= BASKETBALL_CONFIG.streakBonusMultiplier
         text += ` x2 STREAK!`
+        audioManager.playVoice('streak')
       }
 
       if (hasPowerShot) {
@@ -133,7 +135,11 @@ function BasketballGame() {
       addPopup(text, [0, 3.5, -5], color)
 
       if (result === 'swish') {
+        audioManager.play('swish')
+        audioManager.playVoice('swish')
         triggerConfetti()
+      } else {
+        audioManager.play('bounce')
       }
     }
   }, [registerScore, addScore, incrementStreak, currentStreak, hasPowerShot, setHasPowerShot, addPopup, triggerConfetti])

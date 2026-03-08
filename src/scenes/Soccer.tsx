@@ -15,6 +15,7 @@ import { ScorePopup } from '@/components/ScorePopup'
 import { Confetti } from '@/components/Confetti'
 import { useGameSession } from '@/hooks/useGameSession'
 import { useGameKeyboard } from '@/hooks/useGameKeyboard'
+import { audioManager } from '@/core/AudioManager'
 
 function SoccerBall() {
   const ballRef = useRef<RapierRigidBody>(null)
@@ -129,6 +130,7 @@ function SoccerBall() {
 
   const launchBall = useCallback((p: number, ax: number, ay: number) => {
     if (!ballRef.current) return
+    audioManager.play('kick')
     const [bx, by, bz] = SOCCER_CONFIG.ballStartPosition
     ballRef.current.setTranslation({ x: bx, y: by, z: bz }, true)
 
@@ -209,10 +211,13 @@ function SoccerGame() {
         text = 'GOAL!'
         color = '#2ECC71'
         addScore(1)
+        audioManager.play('goalCheer')
+        audioManager.playVoice('goal')
         triggerConfetti()
       } else if (lastResult === 'saved') {
         text = 'Saved!'
         color = '#E74C3C'
+        audioManager.playVoice('greatSave')
       } else {
         text = 'Miss!'
         color = '#888'

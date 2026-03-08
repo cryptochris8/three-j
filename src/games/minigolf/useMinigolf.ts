@@ -15,11 +15,15 @@ interface MinigolfState {
   dragEndY: number
   isDragging: boolean
 
+  lastBallPosition: [number, number, number]
+
   startDrag: (x: number, y: number) => void
   updateDrag: (x: number, y: number) => void
   releasePutt: () => { dirX: number; dirZ: number; power: number }
+  saveBallPosition: (pos: [number, number, number]) => void
   ballStopped: () => void
   ballHoled: () => void
+  waterHazard: () => void
   nextHole: () => void
   getCurrentHoleConfig: () => typeof COURSES[0]
   resetGame: () => void
@@ -36,6 +40,7 @@ export const useMinigolf = create<MinigolfState>((set, get) => ({
   dragEndX: 0,
   dragEndY: 0,
   isDragging: false,
+  lastBallPosition: COURSES[0].teePosition,
 
   startDrag: (x, y) => set({ isDragging: true, dragStartX: x, dragStartY: y, dragEndX: x, dragEndY: y }),
 
@@ -65,6 +70,8 @@ export const useMinigolf = create<MinigolfState>((set, get) => ({
     return { dirX, dirZ, power }
   },
 
+  saveBallPosition: (pos: [number, number, number]) => set({ lastBallPosition: pos }),
+
   ballStopped: () => {
     const { phase, strokes } = get()
     if (phase === 'rolling') {
@@ -90,16 +97,28 @@ export const useMinigolf = create<MinigolfState>((set, get) => ({
     }))
   },
 
+  waterHazard: () => {
+    const { phase } = get()
+    if (phase !== 'rolling') return
+    // Add 1 penalty stroke and return to aiming at lastBallPosition
+    set((s) => ({
+      phase: 'aiming',
+      strokes: s.strokes + 1,
+    }))
+  },
+
   nextHole: () => {
     const { currentHole } = get()
     if (currentHole >= COURSES.length - 1) {
       set({ phase: 'done' })
     } else {
+      const nextHoleIdx = currentHole + 1
       set({
-        currentHole: currentHole + 1,
+        currentHole: nextHoleIdx,
         phase: 'aiming',
         strokes: 0,
         isDragging: false,
+        lastBallPosition: COURSES[nextHoleIdx].teePosition,
       })
     }
   },
@@ -117,5 +136,6 @@ export const useMinigolf = create<MinigolfState>((set, get) => ({
     dragEndX: 0,
     dragEndY: 0,
     isDragging: false,
+    lastBallPosition: COURSES[0].teePosition,
   }),
 }))

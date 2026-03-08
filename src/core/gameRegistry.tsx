@@ -1,5 +1,6 @@
 import { lazy, type ComponentType } from 'react'
 import type { Scene } from '@/types'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 
 interface GameEntry {
   scene: ComponentType
@@ -18,10 +19,21 @@ import { SoccerOverlay } from '@/ui/SoccerUI'
 import { BowlingOverlay } from '@/ui/BowlingUI'
 import { MinigolfOverlay } from '@/ui/MinigolfUI'
 
+// Wrap a scene component with an ErrorBoundary
+function withErrorBoundary(Component: ComponentType, gameName: string): ComponentType {
+  const Wrapped = () => (
+    <ErrorBoundary gameName={gameName}>
+      <Component />
+    </ErrorBoundary>
+  )
+  Wrapped.displayName = `ErrorBoundary(${gameName})`
+  return Wrapped
+}
+
 export const GAME_REGISTRY: Partial<Record<Scene, GameEntry>> = {
-  hub: { scene: Hub },
-  basketball: { scene: Basketball, overlay: BasketballOverlay },
-  soccer: { scene: Soccer, overlay: SoccerOverlay },
-  bowling: { scene: Bowling, overlay: BowlingOverlay },
-  minigolf: { scene: MiniGolf, overlay: MinigolfOverlay },
+  hub: { scene: withErrorBoundary(Hub, 'Hub') },
+  basketball: { scene: withErrorBoundary(Basketball, 'Basketball'), overlay: BasketballOverlay },
+  soccer: { scene: withErrorBoundary(Soccer, 'Soccer'), overlay: SoccerOverlay },
+  bowling: { scene: withErrorBoundary(Bowling, 'Bowling'), overlay: BowlingOverlay },
+  minigolf: { scene: withErrorBoundary(MiniGolf, 'Minigolf'), overlay: MinigolfOverlay },
 }

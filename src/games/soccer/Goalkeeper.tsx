@@ -30,8 +30,7 @@ export function Goalkeeper({ difficulty, ballAimX, ballAimY, isBallKicked, isSlo
       targetY.current = SOCCER_CONFIG.keeperStartPosition[1]
       if (bodyRef.current) {
         const [sx, sy, sz] = SOCCER_CONFIG.keeperStartPosition
-        bodyRef.current.setTranslation({ x: sx, y: sy, z: sz }, true)
-        bodyRef.current.setLinvel({ x: 0, y: 0, z: 0 }, true)
+        bodyRef.current.setNextKinematicTranslation({ x: sx, y: sy, z: sz })
       }
       if (diveTimer.current) {
         clearTimeout(diveTimer.current)
@@ -66,27 +65,27 @@ export function Goalkeeper({ difficulty, ballAimX, ballAimY, isBallKicked, isSlo
     const pos = bodyRef.current.translation()
 
     if (isBallKicked && hasDived.current) {
-      // Move towards target
+      // Move towards target using setNextKinematicTranslation for proper collision
       const dx = targetX.current - pos.x
       const dy = targetY.current - pos.y
       const dist = Math.sqrt(dx * dx + dy * dy)
 
       if (dist > 0.1) {
         const speed = effectiveSpeed * delta
-        bodyRef.current.setTranslation({
+        bodyRef.current.setNextKinematicTranslation({
           x: pos.x + (dx / dist) * speed * 10,
           y: Math.max(0.5, pos.y + (dy / dist) * speed * 5),
           z: pos.z,
-        }, true)
+        })
       }
     } else if (!isBallKicked) {
       // Idle sway
       const sway = Math.sin(state.clock.elapsedTime * 2) * 0.3
-      bodyRef.current.setTranslation({
+      bodyRef.current.setNextKinematicTranslation({
         x: sway,
         y: pos.y,
         z: pos.z,
-      }, true)
+      })
     }
   })
 

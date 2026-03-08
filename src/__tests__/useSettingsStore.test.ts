@@ -6,6 +6,7 @@ describe('useSettingsStore', () => {
     useSettingsStore.setState({
       sfxVolume: 0.7,
       musicVolume: 0.4,
+      voiceVolume: 0.85,
       graphicsQuality: 'high',
       showTutorials: true,
     })
@@ -20,6 +21,11 @@ describe('useSettingsStore', () => {
     it('sets music volume', () => {
       useSettingsStore.getState().setMusicVolume(0.8)
       expect(useSettingsStore.getState().musicVolume).toBe(0.8)
+    })
+
+    it('sets voice volume', () => {
+      useSettingsStore.getState().setVoiceVolume(0.6)
+      expect(useSettingsStore.getState().voiceVolume).toBe(0.6)
     })
   })
 

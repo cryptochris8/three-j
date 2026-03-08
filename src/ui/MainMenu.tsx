@@ -1,5 +1,6 @@
 import { usePlayerStore } from '@/stores/usePlayerStore'
 import { useGameStore } from '@/stores/useGameStore'
+import { audioManager } from '@/core/AudioManager'
 import { COLORS } from '@/core/constants'
 
 export function MainMenu() {
@@ -10,6 +11,8 @@ export function MainMenu() {
 
   const handleStart = () => {
     if (activeProfileId) {
+      audioManager.play('click')
+      audioManager.playVoice('welcome')
       setScene('hub')
     }
   }

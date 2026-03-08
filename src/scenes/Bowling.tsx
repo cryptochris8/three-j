@@ -14,6 +14,7 @@ import { Confetti } from '@/components/Confetti'
 import { useGameSession } from '@/hooks/useGameSession'
 import { useGameKeyboard } from '@/hooks/useGameKeyboard'
 import { useEducationStore } from '@/stores/useEducationStore'
+import { audioManager } from '@/core/AudioManager'
 
 function BowlingGame() {
   const gamePhase = useGameStore((s) => s.gamePhase)
@@ -62,12 +63,17 @@ function BowlingGame() {
       if (isStrike) {
         text = 'STRIKE!'
         color = '#2ECC71'
+        audioManager.play('pinCrash')
+        audioManager.playVoice('strike')
         triggerConfetti()
       } else if (isSpare) {
         text = 'SPARE!'
         color = '#4FC3F7'
+        audioManager.play('pinCrash')
+        audioManager.playVoice('spare')
       } else {
         text = `+${lastScore}`
+        audioManager.play('pinCrash')
       }
 
       addScore(lastScore)

@@ -9,7 +9,9 @@
       "WebFetch(domain:playbooks.com)",
       "Bash(npm install:*)",
       "Bash(npm run build:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nAdd quiz feedback enhancements, skybox system, audio SFX, Three.js MCP, and project infrastructure\n\n- Add correct/wrong sound effects \\(from Buzz-chain\\) and audio bootstrapping in useAudioSync\n- Add quiz answer animations \\(shake on wrong, bounce on correct\\) in global CSS\n- Add 3D ScorePopup for quiz results via lastQuizResult bridge in useGameStore\n- Wire up audioManager.play\\(''correct''/''wrong''\\) in QuizModal\n- Add Skybox component with per-game equirectangular panorama support and error boundary fallback\n- Add basketball skybox image\n- Add Three.js MCP server configuration \\(.mcp.json\\)\n- Add game registry, game session hooks, keyboard controls, reduced motion support\n- Add HomeButton, TutorialOverlay, and PauseMenu UI components\n- Add unit tests and vitest configuration\n- Update all game overlays to signal quiz results to 3D scene\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git push:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
