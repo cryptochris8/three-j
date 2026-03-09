@@ -13,6 +13,7 @@ import { ScorePopup } from '@/components/ScorePopup'
 import { Confetti } from '@/components/Confetti'
 import { useGameScene } from '@/hooks/useGameScene'
 import { audioManager } from '@/core/AudioManager'
+import { BallTrail } from '@/components/BallTrail'
 
 function GuideLine({ ballPosition }: { ballPosition: [number, number, number] }) {
   const hasGuideLine = useMinigolf((s) => s.hasGuideLine)
@@ -66,6 +67,10 @@ function GolfBall() {
   const ballRef = useRef<RapierRigidBody>(null)
   const { camera } = useThree()
 
+  // Pre-allocated vectors for smooth camera (avoids GC pressure)
+  const camTarget = useRef(new THREE.Vector3())
+  const camLookTarget = useRef(new THREE.Vector3())
+
   const phase = useMinigolf((s) => s.phase)
   const currentHole = useMinigolf((s) => s.currentHole)
   const isDragging = useMinigolf((s) => s.isDragging)
@@ -76,44 +81,175 @@ function GolfBall() {
   const ballStopped = useMinigolf((s) => s.ballStopped)
   const outOfBounds = useMinigolf((s) => s.outOfBounds)
   const resetCounter = useMinigolf((s) => s.resetCounter)
+  const lastBallPosition = useMinigolf((s) => s.lastBallPosition)
 
   const holeConfig = COURSES[currentHole]
 
-  // Camera
+  // Putt direction indicator: dashed dotted line showing aim direction + power
+  // Ground surface is at y=0.05, so dots must be above that
+  const aimDotsCount = 12
+  const aimDots = useMemo(() => {
+    const group = new THREE.Group()
+    for (let i = 0; i < aimDotsCount; i++) {
+      const geo = new THREE.CircleGeometry(0.025 - i * 0.001, 8)
+      const mat = new THREE.MeshBasicMaterial({ color: 0x44cc44, transparent: true, opacity: 0.8 })
+      const mesh = new THREE.Mesh(geo, mat)
+      mesh.rotation.x = -Math.PI / 2
+      mesh.position.y = 0.055 // above ground surface (0.05)
+      mesh.visible = false
+      group.add(mesh)
+    }
+    group.visible = false
+    return group
+  }, [])
+
   useEffect(() => {
-    const [tx, , tz] = holeConfig.teePosition
-    camera.position.set(tx, 4, tz + 4)
-    camera.lookAt(tx, 0, tz - 2)
+    return () => {
+      aimDots.children.forEach((child) => {
+        const mesh = child as THREE.Mesh
+        mesh.geometry.dispose()
+        ;(mesh.material as THREE.Material).dispose()
+      })
+    }
+  }, [aimDots])
+
+  // Snap camera instantly on new hole (no lerp delay)
+  useEffect(() => {
+    const tee = holeConfig.teePosition
+    const hole = holeConfig.holePosition
+    const dx = hole[0] - tee[0]
+    const dz = hole[2] - tee[2]
+    const dist = Math.sqrt(dx * dx + dz * dz)
+    const dirX = dx / (dist || 1)
+    const dirZ = dz / (dist || 1)
+    const t = Math.min(dist / 8, 1)
+    const camHeight = 1.8 + t * 2.2
+    const camBack = 2.0 + t * 2.0
+
+    camera.position.set(tee[0] - dirX * camBack, camHeight, tee[2] - dirZ * camBack)
+    camera.lookAt(tee[0] + dirX * 2, 0, tee[2] + dirZ * 2)
+    camTarget.current.copy(camera.position)
   }, [camera, currentHole, holeConfig])
 
-  // Ball stopped check + out-of-bounds detection
+  // Dynamic camera + ball physics + putt direction indicator
   useFrame(() => {
+    const holePos = holeConfig.holePosition
+    let bx: number, by: number, bz: number
+
     if (phase === 'rolling' && ballRef.current) {
       const pos = ballRef.current.translation()
+      bx = pos.x; by = pos.y; bz = pos.z
 
-      if (pos.y < MINIGOLF_CONFIG.outOfBoundsY) {
+      // Out of bounds: ball fell off the course
+      if (by < MINIGOLF_CONFIG.outOfBoundsY) {
         outOfBounds()
         return
       }
 
+      // Ball stopped check
       const vel = ballRef.current.linvel()
       const speed = Math.sqrt(vel.x * vel.x + vel.y * vel.y + vel.z * vel.z)
       if (speed < 0.05) {
-        saveBallPosition([pos.x, pos.y, pos.z])
+        saveBallPosition([bx, by, bz])
         ballStopped()
       }
+    } else {
+      // During aiming/holed phases, use the saved ball position
+      bx = lastBallPosition[0]
+      by = lastBallPosition[1]
+      bz = lastBallPosition[2]
+    }
+
+    // --- DYNAMIC CAMERA ---
+    // Direction from ball toward hole
+    const dx = holePos[0] - bx
+    const dz = holePos[2] - bz
+    const dist = Math.sqrt(dx * dx + dz * dz)
+    const dirX = dx / (dist || 1)
+    const dirZ = dz / (dist || 1)
+
+    // Camera height and distance scale with ball-to-hole distance
+    // Close to hole: camera is low and tight for a clear view
+    // Far from hole: camera is higher and further back for overview
+    const maxDist = 8
+    const t = Math.min(dist / maxDist, 1) // 0 = at hole, 1 = far away
+    const camHeight = 1.8 + t * 2.2       // 1.8 (close) to 4.0 (far)
+    const camBack = 2.0 + t * 2.0         // 2.0 (close) to 4.0 (far)
+
+    // Position camera behind ball (opposite direction to hole)
+    camTarget.current.set(
+      bx - dirX * camBack,
+      camHeight,
+      bz - dirZ * camBack
+    )
+
+    // Look ahead toward hole
+    const lookAhead = Math.min(dist * 0.5, 2)
+    camLookTarget.current.set(
+      bx + dirX * lookAhead,
+      0,
+      bz + dirZ * lookAhead
+    )
+
+    // Smooth lerp: faster settle during aiming, slower follow during rolling
+    const lerpSpeed = phase === 'rolling' ? 0.04 : 0.08
+    camera.position.lerp(camTarget.current, lerpSpeed)
+    camera.lookAt(camLookTarget.current)
+
+    // --- PUTT DIRECTION INDICATOR (dotted aim line with power color) ---
+    if (isDragging) {
+      const state = useMinigolf.getState()
+      const ddx = state.dragStartX - state.dragEndX
+      const ddy = state.dragStartY - state.dragEndY
+      const dragDist = Math.sqrt(ddx * ddx + ddy * ddy)
+      if (dragDist > 5) {
+        const power = Math.min(dragDist * 0.1, MINIGOLF_CONFIG.maxPuttPower)
+        const pDirX = ddx / dragDist
+        const pDirZ = ddy / dragDist
+        const arrowLen = Math.min(power * 0.15, 2.0)
+        const powerRatio = power / MINIGOLF_CONFIG.maxPuttPower
+
+        // Color: green (low) → yellow (mid) → red (high)
+        const r = powerRatio < 0.5 ? powerRatio * 2 : 1
+        const g = powerRatio < 0.5 ? 1 : 1 - (powerRatio - 0.5) * 2
+        const dotColor = new THREE.Color(r, g, 0.1)
+
+        aimDots.visible = true
+        for (let i = 0; i < aimDotsCount; i++) {
+          const dot = aimDots.children[i] as THREE.Mesh
+          const t = (i + 1) / aimDotsCount
+          if (t * arrowLen > arrowLen) {
+            dot.visible = false
+            continue
+          }
+          dot.visible = true
+          dot.position.x = bx + pDirX * t * arrowLen
+          dot.position.z = bz + pDirZ * t * arrowLen
+          ;(dot.material as THREE.MeshBasicMaterial).color.copy(dotColor)
+          ;(dot.material as THREE.MeshBasicMaterial).opacity = 0.9 - t * 0.4
+        }
+      } else {
+        aimDots.visible = false
+      }
+    } else {
+      aimDots.visible = false
     }
   })
 
   // Reset ball on new hole, water hazard, or out-of-bounds
+  // The key prop forces remount, but this effect is a safety net for velocity reset
   useEffect(() => {
-    if (ballRef.current) {
-      const [tx, ty, tz] = useMinigolf.getState().lastBallPosition
-      ballRef.current.setTranslation({ x: tx, y: ty, z: tz }, true)
-      ballRef.current.setLinvel({ x: 0, y: 0, z: 0 }, true)
-      ballRef.current.setAngvel({ x: 0, y: 0, z: 0 }, true)
-    }
-  }, [resetCounter])
+    // Small delay to ensure the RigidBody has been created after remount
+    const timer = setTimeout(() => {
+      if (ballRef.current) {
+        const [tx, ty, tz] = useMinigolf.getState().lastBallPosition
+        ballRef.current.setTranslation({ x: tx, y: ty, z: tz }, true)
+        ballRef.current.setLinvel({ x: 0, y: 0, z: 0 }, true)
+        ballRef.current.setAngvel({ x: 0, y: 0, z: 0 }, true)
+      }
+    }, 50)
+    return () => clearTimeout(timer)
+  }, [resetCounter, currentHole])
 
   // Mouse controls for slingshot putt
   useEffect(() => {
@@ -188,21 +324,34 @@ function GolfBall() {
   }, [phase, isDragging, startDrag, updateDrag, releasePutt])
 
   return (
-    <RigidBody
-      ref={ballRef}
-      colliders="ball"
-      mass={MINIGOLF_CONFIG.ballMass}
-      restitution={MINIGOLF_CONFIG.ballRestitution}
-      linearDamping={MINIGOLF_CONFIG.ballLinearDamping}
-      angularDamping={1}
-      position={holeConfig.teePosition}
-      name="golfball"
-    >
-      <mesh castShadow>
-        <sphereGeometry args={[MINIGOLF_CONFIG.ballRadius, 16, 16]} />
-        <meshStandardMaterial color="#fff" roughness={0.3} />
-      </mesh>
-    </RigidBody>
+    <>
+      <RigidBody
+        key={`ball-${currentHole}-${resetCounter}`}
+        ref={ballRef}
+        colliders="ball"
+        mass={MINIGOLF_CONFIG.ballMass}
+        restitution={MINIGOLF_CONFIG.ballRestitution}
+        linearDamping={MINIGOLF_CONFIG.ballLinearDamping}
+        angularDamping={1}
+        position={lastBallPosition}
+        name="golfball"
+      >
+        <mesh castShadow>
+          <sphereGeometry args={[MINIGOLF_CONFIG.ballRadius, 16, 16]} />
+          <meshStandardMaterial color="#fff" roughness={0.3} />
+        </mesh>
+      </RigidBody>
+
+      {/* Ball trail effect */}
+      <BallTrail
+        getPosition={() => ballRef.current?.translation() ?? null}
+        color="#88ccff"
+        isActive={phase === 'rolling'}
+      />
+
+      {/* Putt direction indicator (dotted line) */}
+      <primitive object={aimDots} />
+    </>
   )
 }
 

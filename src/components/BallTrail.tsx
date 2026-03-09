@@ -1,58 +1,66 @@
-import { useRef, useMemo } from 'react'
-import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
+import { useMemo, useRef, useEffect } from 'react'
+import { useFrame } from '@react-three/fiber'
 
 interface BallTrailProps {
-  /** Target object to follow */
-  targetRef: React.RefObject<THREE.Object3D | { translation(): { x: number; y: number; z: number } } | null>
-  /** Trail color */
+  getPosition: () => { x: number; y: number; z: number } | null
   color?: string
-  /** Max number of trail points */
+  isActive?: boolean
   maxPoints?: number
-  /** Whether the trail is actively recording */
-  active?: boolean
 }
 
-/**
- * Renders a fading trail behind a moving ball.
- * Works with both Three.js objects (using position) and Rapier rigid bodies (using translation()).
- */
-export function BallTrail({ targetRef, color = '#F7C948', maxPoints = 20, active = true }: BallTrailProps) {
+export function BallTrail({ getPosition, color = '#ffffff', isActive = false, maxPoints = 40 }: BallTrailProps) {
   const positions = useRef<number[]>([])
-  const geometry = useMemo(() => new THREE.BufferGeometry(), [])
-  const material = useMemo(() => new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.4 }), [color])
-  const lineObj = useMemo(() => new THREE.Line(geometry, material), [geometry, material])
+  const wasActive = useRef(false)
+
+  const { lineObj, geometry } = useMemo(() => {
+    const geo = new THREE.BufferGeometry()
+    const posArr = new Float32Array(maxPoints * 3)
+    geo.setAttribute('position', new THREE.BufferAttribute(posArr, 3))
+    geo.setDrawRange(0, 0)
+    const mat = new THREE.LineBasicMaterial({
+      color: new THREE.Color(color),
+      transparent: true,
+      opacity: 0.5,
+    })
+    return { lineObj: new THREE.Line(geo, mat), geometry: geo }
+  }, [color, maxPoints])
+
+  useEffect(() => {
+    return () => {
+      lineObj.geometry.dispose()
+      ;(lineObj.material as THREE.Material).dispose()
+    }
+  }, [lineObj])
 
   useFrame(() => {
-    if (!targetRef.current || !active) {
-      positions.current = []
-      return
-    }
-
-    let x: number, y: number, z: number
-    const target = targetRef.current
-    if ('translation' in target && typeof target.translation === 'function') {
-      const pos = target.translation()
-      x = pos.x; y = pos.y; z = pos.z
-    } else if ('position' in target) {
-      const obj = target as THREE.Object3D
-      x = obj.position.x; y = obj.position.y; z = obj.position.z
+    if (isActive) {
+      if (!wasActive.current) {
+        positions.current = []
+        wasActive.current = true
+      }
+      const pos = getPosition()
+      if (pos) {
+        positions.current.push(pos.x, pos.y, pos.z)
+        if (positions.current.length > maxPoints * 3) {
+          positions.current = positions.current.slice(3)
+        }
+      }
     } else {
-      return
+      wasActive.current = false
+      if (positions.current.length > 0) {
+        positions.current = positions.current.slice(6)
+      }
     }
 
-    positions.current.push(x, y, z)
-    if (positions.current.length > maxPoints * 3) {
-      positions.current = positions.current.slice(-maxPoints * 3)
+    const attr = geometry.getAttribute('position') as THREE.BufferAttribute
+    const arr = attr.array as Float32Array
+    const count = Math.min(positions.current.length / 3, maxPoints)
+    for (let i = 0; i < count * 3; i++) {
+      arr[i] = positions.current[positions.current.length - count * 3 + i]
     }
-
-    if (positions.current.length >= 6) {
-      geometry.setAttribute(
-        'position',
-        new THREE.Float32BufferAttribute(positions.current, 3),
-      )
-      geometry.attributes.position.needsUpdate = true
-    }
+    attr.needsUpdate = true
+    geometry.setDrawRange(0, count)
   })
 
   return <primitive object={lineObj} />

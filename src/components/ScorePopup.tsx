@@ -21,12 +21,12 @@ export function ScorePopup({ text, position, color = '#F7C948', onComplete }: Sc
     if (startClock.current < 0) startClock.current = state.clock.elapsedTime
     const elapsed = state.clock.elapsedTime - startClock.current
 
-    // Scale-in with overshoot (0 -> 1.3 -> 1.0 in first 0.2s)
+    // Scale bounce: 0 -> 1.4 -> 1.0 (spring-like entrance)
     let s: number
-    if (elapsed < 0.1) {
-      s = (elapsed / 0.1) * 1.3
-    } else if (elapsed < 0.2) {
-      s = 1.3 - ((elapsed - 0.1) / 0.1) * 0.3
+    if (elapsed < 0.12) {
+      s = (elapsed / 0.12) * 1.4
+    } else if (elapsed < 0.3) {
+      s = 1.4 - ((elapsed - 0.12) / 0.18) * 0.4
     } else {
       s = 1
     }

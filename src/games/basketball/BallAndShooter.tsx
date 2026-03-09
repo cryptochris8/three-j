@@ -1,13 +1,19 @@
 import { useRef, useEffect, useCallback } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
+import * as THREE from 'three'
 import { RigidBody, type RapierRigidBody } from '@react-three/rapier'
 import { useBasketball } from './useBasketball'
 import { BASKETBALL_CONFIG } from './config'
+import { BallTrail } from '@/components/BallTrail'
 
 export function BallAndShooter() {
   const ballRef = useRef<RapierRigidBody>(null)
   const missTimerRef = useRef<number | null>(null)
   const { camera } = useThree()
+
+  // Pre-allocated vectors for smooth camera transitions
+  const camTargetPos = useRef(new THREE.Vector3(0, 3.5, 8))
+  const camLookAtTarget = useRef(new THREE.Vector3(0, 2.5, -5))
 
   const {
     isBallFlying,
@@ -24,19 +30,44 @@ export function BallAndShooter() {
 
   const { ballStartPosition, minPower, maxPower, launchAngle } = BASKETBALL_CONFIG
 
-  // Camera setup
+  // Initialize camera position on mount
   useEffect(() => {
     camera.position.set(0, 3.5, 8)
     camera.lookAt(0, 2.5, -5)
   }, [camera])
 
-  // Power meter oscillation while charging
+  // Power meter oscillation + dynamic camera
   useFrame((state) => {
     if (isPowerCharging) {
       const t = state.clock.elapsedTime * 3
       const normalizedPower = (Math.sin(t) + 1) / 2
       setPower(minPower + normalizedPower * (maxPower - minPower))
     }
+
+    // Dynamic camera: follow ball during flight, zoom near hoop
+    if (isBallFlying && ballRef.current) {
+      const pos = ballRef.current.translation()
+      const hoopPos = BASKETBALL_CONFIG.hoopPosition
+      const distToHoop = Math.sqrt(
+        (pos.x - hoopPos[0]) ** 2 + (pos.z - hoopPos[2]) ** 2
+      )
+      const maxDist = 13
+      const proximity = 1 - Math.min(distToHoop / maxDist, 1)
+
+      camTargetPos.current.set(
+        pos.x * 0.3,
+        Math.max(3, pos.y + 1.5),
+        Math.max(2, pos.z + 5 - proximity * 2)
+      )
+      camLookAtTarget.current.set(pos.x, pos.y, pos.z)
+    } else {
+      // Return to default shooting position
+      camTargetPos.current.set(0, 3.5, 8)
+      camLookAtTarget.current.set(0, 2.5, -5)
+    }
+
+    camera.position.lerp(camTargetPos.current, 0.05)
+    camera.lookAt(camLookAtTarget.current)
   })
 
   // Mouse movement for aim
@@ -169,6 +200,13 @@ export function BallAndShooter() {
           <meshStandardMaterial color="#FF6B00" roughness={0.7} />
         </mesh>
       </RigidBody>
+
+      {/* Ball trail during flight */}
+      <BallTrail
+        getPosition={() => ballRef.current?.translation() ?? null}
+        color="#FF8C42"
+        isActive={isBallFlying}
+      />
 
       {/* Aim indicator (when not flying) */}
       {!isBallFlying && (

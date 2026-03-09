@@ -1,7 +1,9 @@
-import { Suspense } from 'react'
+import { Suspense, useEffect } from 'react'
 import { GameCanvas } from '@/core/GameCanvas'
 import { useGameStore } from '@/stores/useGameStore'
 import { useAudioSync } from '@/hooks/useAudioSync'
+import { audioManager } from '@/core/AudioManager'
+import type { MusicName } from '@/core/AudioManager'
 import { MainMenu } from '@/ui/MainMenu'
 import { PauseMenu } from '@/ui/PauseMenu'
 import { TutorialOverlay } from '@/ui/TutorialOverlay'
@@ -43,11 +45,28 @@ function LoadingScreen() {
   )
 }
 
+const SCENE_MUSIC: Record<string, MusicName> = {
+  menu: 'menu',
+  hub: 'hub',
+  basketball: 'basketball',
+  soccer: 'soccer',
+  bowling: 'bowling',
+  minigolf: 'minigolf',
+}
+
 export function App() {
   useAudioSync()
   const currentScene = useGameStore((s) => s.currentScene)
   const gamePhase = useGameStore((s) => s.gamePhase)
   const isLoading = useGameStore((s) => s.isLoading)
+
+  // Play background music for each scene
+  useEffect(() => {
+    const musicName = SCENE_MUSIC[currentScene]
+    if (musicName) {
+      audioManager.playMusic(musicName)
+    }
+  }, [currentScene])
 
   return (
     <>

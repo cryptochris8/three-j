@@ -1,8 +1,10 @@
 import { useRef, useEffect, useCallback } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
+import * as THREE from 'three'
 import { RigidBody, type RapierRigidBody } from '@react-three/rapier'
 import { useBowling } from './useBowling'
 import { BOWLING_CONFIG } from './config'
+import { BallTrail } from '@/components/BallTrail'
 
 interface BowlingBallProps {
   onBallStopped: () => void
@@ -11,6 +13,13 @@ interface BowlingBallProps {
 export function BowlingBall({ onBallStopped }: BowlingBallProps) {
   const ballRef = useRef<RapierRigidBody>(null)
   const { camera } = useThree()
+
+  // Guard: only report ball stop ONCE per rolling phase
+  const ballStopReported = useRef(false)
+
+  // Pre-allocated vectors for smooth camera
+  const camTargetPos = useRef(new THREE.Vector3(0, 2.5, 10))
+  const camLookAtTarget = useRef(new THREE.Vector3(0, 0.5, -7))
 
   const {
     phase,
@@ -25,13 +34,20 @@ export function BowlingBall({ onBallStopped }: BowlingBallProps) {
 
   const { ballStartPosition, maxBallSpeed, minBallSpeed, ballRadius } = BOWLING_CONFIG
 
-  // Position camera
+  // Reset the stop guard when entering rolling phase
+  useEffect(() => {
+    if (phase === 'rolling') {
+      ballStopReported.current = false
+    }
+  }, [phase])
+
+  // Initialize camera
   useEffect(() => {
     camera.position.set(0, 2.5, 10)
     camera.lookAt(0, 0.5, -7)
   }, [camera])
 
-  // Handle ball positioning during aiming
+  // Handle ball positioning, power/spin oscillation, stop detection + dynamic camera
   useFrame((state) => {
     if (phase === 'positioning' && ballRef.current) {
       ballRef.current.setTranslation(
@@ -55,17 +71,43 @@ export function BowlingBall({ onBallStopped }: BowlingBallProps) {
       setSpinAngle(Math.sin(t) * 3)
     }
 
-    // Check if rolling ball has stopped
-    if (phase === 'rolling' && ballRef.current) {
+    // Check if rolling ball has stopped - ONLY FIRE ONCE
+    if (phase === 'rolling' && ballRef.current && !ballStopReported.current) {
       const vel = ballRef.current.linvel()
       const speed = Math.sqrt(vel.x * vel.x + vel.y * vel.y + vel.z * vel.z)
       const pos = ballRef.current.translation()
 
       // Ball stopped or fell off lane
       if (speed < 0.1 || pos.y < -1 || pos.z < -9) {
+        ballStopReported.current = true
         onBallStopped()
       }
     }
+
+    // --- DYNAMIC CAMERA ---
+    if (phase === 'rolling' && ballRef.current) {
+      const pos = ballRef.current.translation()
+      // Progress: 0 at start (z=7), 1 at pins (z=-7)
+      const progress = Math.max(0, 1 - (pos.z + 7) / 14)
+
+      camTargetPos.current.set(
+        0.3 + pos.x * 0.3,           // slight side offset for dramatic angle
+        2.5 - progress * 1.2,         // lower camera near pins
+        Math.max(pos.z + 3, -5)       // follow behind ball
+      )
+      camLookAtTarget.current.set(
+        pos.x,
+        0.2,
+        Math.min(pos.z - 2, -7)       // look ahead of ball toward pins
+      )
+    } else {
+      // Return to default behind-bowler view
+      camTargetPos.current.set(0, 2.5, 10)
+      camLookAtTarget.current.set(0, 0.5, -7)
+    }
+
+    camera.position.lerp(camTargetPos.current, 0.05)
+    camera.lookAt(camLookAtTarget.current)
   })
 
   // Mouse controls
@@ -129,32 +171,41 @@ export function BowlingBall({ onBallStopped }: BowlingBallProps) {
   }, [ballStartPosition])
 
   return (
-    <RigidBody
-      ref={ballRef}
-      colliders="ball"
-      mass={BOWLING_CONFIG.ballMass}
-      restitution={BOWLING_CONFIG.ballRestitution}
-      linearDamping={0.3}
-      position={ballStartPosition}
-      name="bowlingball"
-    >
-      <mesh castShadow>
-        <sphereGeometry args={[ballRadius, 32, 32]} />
-        <meshStandardMaterial color="#1A1A2E" roughness={0.2} metalness={0.3} />
-      </mesh>
-      {/* Finger holes */}
-      <mesh position={[0, ballRadius * 0.7, -ballRadius * 0.3]} rotation={[0.3, 0, 0]}>
-        <cylinderGeometry args={[0.015, 0.015, 0.02, 8]} />
-        <meshStandardMaterial color="#111" />
-      </mesh>
-      <mesh position={[0.02, ballRadius * 0.7, -ballRadius * 0.15]} rotation={[0.1, 0, 0]}>
-        <cylinderGeometry args={[0.015, 0.015, 0.02, 8]} />
-        <meshStandardMaterial color="#111" />
-      </mesh>
-      <mesh position={[-0.02, ballRadius * 0.7, -ballRadius * 0.15]} rotation={[0.1, 0, 0]}>
-        <cylinderGeometry args={[0.015, 0.015, 0.02, 8]} />
-        <meshStandardMaterial color="#111" />
-      </mesh>
-    </RigidBody>
+    <>
+      <RigidBody
+        ref={ballRef}
+        colliders="ball"
+        mass={BOWLING_CONFIG.ballMass}
+        restitution={BOWLING_CONFIG.ballRestitution}
+        linearDamping={0.3}
+        position={ballStartPosition}
+        name="bowlingball"
+      >
+        <mesh castShadow>
+          <sphereGeometry args={[ballRadius, 32, 32]} />
+          <meshStandardMaterial color="#1A1A2E" roughness={0.2} metalness={0.3} />
+        </mesh>
+        {/* Finger holes */}
+        <mesh position={[0, ballRadius * 0.7, -ballRadius * 0.3]} rotation={[0.3, 0, 0]}>
+          <cylinderGeometry args={[0.015, 0.015, 0.02, 8]} />
+          <meshStandardMaterial color="#111" />
+        </mesh>
+        <mesh position={[0.02, ballRadius * 0.7, -ballRadius * 0.15]} rotation={[0.1, 0, 0]}>
+          <cylinderGeometry args={[0.015, 0.015, 0.02, 8]} />
+          <meshStandardMaterial color="#111" />
+        </mesh>
+        <mesh position={[-0.02, ballRadius * 0.7, -ballRadius * 0.15]} rotation={[0.1, 0, 0]}>
+          <cylinderGeometry args={[0.015, 0.015, 0.02, 8]} />
+          <meshStandardMaterial color="#111" />
+        </mesh>
+      </RigidBody>
+
+      {/* Ball trail down the lane */}
+      <BallTrail
+        getPosition={() => ballRef.current?.translation() ?? null}
+        color="#4444aa"
+        isActive={phase === 'rolling'}
+      />
+    </>
   )
 }

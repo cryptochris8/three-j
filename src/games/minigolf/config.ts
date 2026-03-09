@@ -47,6 +47,7 @@ export const COURSES: HoleConfig[] = [
       { position: [-0.8, 0.1, 0], size: [0.1, 0.2, 7] },
       { position: [0.8, 0.1, 0], size: [0.1, 0.2, 7] },
       { position: [0, 0.1, -3.55], size: [1.7, 0.2, 0.1] },
+      { position: [0, 0.1, 3.55], size: [1.7, 0.2, 0.1] },
     ],
     obstacles: [],
     funFact: 'A cheetah can sprint at 70 mph!',
@@ -59,6 +60,7 @@ export const COURSES: HoleConfig[] = [
       { position: [-0.8, 0.1, 0], size: [0.1, 0.2, 9] },
       { position: [0.8, 0.1, 0], size: [0.1, 0.2, 9] },
       { position: [0, 0.1, -4.55], size: [1.7, 0.2, 0.1] },
+      { position: [0, 0.1, 4.55], size: [1.7, 0.2, 0.1] },
     ],
     obstacles: [
       { type: 'ramp', position: [0, 0, 0], size: [1.2, 0.2, 1.5] },
@@ -67,14 +69,15 @@ export const COURSES: HoleConfig[] = [
   },
   {
     id: 3, name: 'Tunnel Run', par: 3, theme: 'safari',
-    teePosition: [0, 0.03, 4], holePosition: [2, -0.01, -3],
-    courseWidth: 2, courseLength: 9,
+    teePosition: [0, 0.03, 4], holePosition: [0.7, -0.01, -3.5],
+    courseWidth: 2.5, courseLength: 9,
     walls: [
-      { position: [-1.1, 0.1, 0], size: [0.1, 0.2, 9] },
-      { position: [1.1, 0.1, 0], size: [0.1, 0.2, 9] },
-      { position: [0, 0.1, -4.55], size: [2.3, 0.2, 0.1] },
-      // L-bend wall
-      { position: [0, 0.1, -1], size: [0.8, 0.2, 0.1] },
+      { position: [-1.35, 0.1, 0], size: [0.1, 0.2, 9] },
+      { position: [1.35, 0.1, 0], size: [0.1, 0.2, 9] },
+      { position: [0, 0.1, -4.55], size: [2.8, 0.2, 0.1] },
+      { position: [0, 0.1, 4.55], size: [2.8, 0.2, 0.1] },
+      // L-bend wall forces the ball to go around
+      { position: [-0.3, 0.1, -1], size: [1.2, 0.2, 0.1] },
     ],
     obstacles: [],
     funFact: 'A group of flamingos is called a "flamboyance"!',
@@ -89,6 +92,7 @@ export const COURSES: HoleConfig[] = [
       { position: [-1.1, 0.1, 0], size: [0.1, 0.2, 7] },
       { position: [1.1, 0.1, 0], size: [0.1, 0.2, 7] },
       { position: [0, 0.1, -3.55], size: [2.3, 0.2, 0.1] },
+      { position: [0, 0.1, 3.55], size: [2.3, 0.2, 0.1] },
     ],
     obstacles: [
       { type: 'bumper', position: [-0.4, 0.08, 0] },
@@ -105,6 +109,7 @@ export const COURSES: HoleConfig[] = [
       { position: [-1.1, 0.1, 0], size: [0.1, 0.2, 9] },
       { position: [1.1, 0.1, 0], size: [0.1, 0.2, 9] },
       { position: [0, 0.1, -4.55], size: [2.3, 0.2, 0.1] },
+      { position: [0, 0.1, 4.55], size: [2.3, 0.2, 0.1] },
     ],
     obstacles: [
       { type: 'windmill', position: [0, 0, -1] },
@@ -119,6 +124,7 @@ export const COURSES: HoleConfig[] = [
       { position: [-1.1, 0.1, 0], size: [0.1, 0.2, 7] },
       { position: [1.1, 0.1, 0], size: [0.1, 0.2, 7] },
       { position: [0, 0.1, -3.55], size: [2.3, 0.2, 0.1] },
+      { position: [0, 0.1, 3.55], size: [2.3, 0.2, 0.1] },
     ],
     obstacles: [
       { type: 'water', position: [-0.5, 0, 0], size: [0.8, 0.01, 1.2] },
@@ -135,6 +141,7 @@ export const COURSES: HoleConfig[] = [
       { position: [-1.1, 0.1, 0], size: [0.1, 0.2, 7] },
       { position: [1.1, 0.1, 0], size: [0.1, 0.2, 7] },
       { position: [0, 0.1, -3.55], size: [2.3, 0.2, 0.1] },
+      { position: [0, 0.1, 3.55], size: [2.3, 0.2, 0.1] },
     ],
     obstacles: [
       { type: 'bumper', position: [-0.5, 0.08, -0.5] },
@@ -150,6 +157,7 @@ export const COURSES: HoleConfig[] = [
       { position: [-1.35, 0.1, 0], size: [0.1, 0.2, 9] },
       { position: [1.35, 0.1, 0], size: [0.1, 0.2, 9] },
       { position: [0, 0.1, -4.55], size: [2.8, 0.2, 0.1] },
+      { position: [0, 0.1, 4.55], size: [2.8, 0.2, 0.1] },
     ],
     obstacles: [
       { type: 'windmill', position: [0, 0, -1] },
@@ -165,6 +173,7 @@ export const COURSES: HoleConfig[] = [
       { position: [-1.35, 0.1, 0], size: [0.1, 0.2, 11] },
       { position: [1.35, 0.1, 0], size: [0.1, 0.2, 11] },
       { position: [0, 0.1, -5.55], size: [2.8, 0.2, 0.1] },
+      { position: [0, 0.1, 5.55], size: [2.8, 0.2, 0.1] },
       // Zigzag walls
       { position: [-0.5, 0.1, -1], size: [0.8, 0.2, 0.1] },
       { position: [0.5, 0.1, -3], size: [0.8, 0.2, 0.1] },

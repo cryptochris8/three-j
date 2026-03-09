@@ -20,7 +20,7 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
   achievements: [],
   recentUnlocks: [],
 
-  isGameUnlocked: (_game) => true, // TODO: restore unlock gating: get().unlockedGames.includes(game)
+  isGameUnlocked: (_game) => true, // All base games always unlocked
 
   unlockGame: (game) =>
     set((s) =>

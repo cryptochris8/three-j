@@ -22,6 +22,7 @@ function BowlingGame() {
   const {
     phase: bowlingPhase,
     currentFrame,
+    ballsThisFrame,
     isStrike,
     isSpare,
     frameScores,
@@ -34,19 +35,39 @@ function BowlingGame() {
   const { popups, showConfetti, addPopup, removePopup, triggerConfetti, triggerQuiz, endGame } = useGameScene('bowling', () => resetGame(bowlingConfig.totalFrames))
   const pinsRef = useRef<PinsHandle>(null)
 
+  // Guard: prevent frameover effect from processing multiple times per frame
+  const frameOverHandled = useRef(false)
+
+  // When returning to positioning after ball 1 (not a strike), reset knocked pins
+  useEffect(() => {
+    if (bowlingPhase === 'positioning' && ballsThisFrame === 1) {
+      // Between ball 1 and ball 2: clear knocked pins, re-spot standing pins
+      if (pinsRef.current) {
+        pinsRef.current.resetUnknocked()
+      }
+    }
+  }, [bowlingPhase, ballsThisFrame])
+
+
   const handleBallStopped = useCallback(() => {
     if (!pinsRef.current) return
     setTimeout(() => {
       if (!pinsRef.current) return
+      // Double-check we're still in rolling phase (guard against stale timeouts)
+      const currentPhase = useBowling.getState().phase
+      if (currentPhase !== 'rolling') return
+
       const knocked = pinsRef.current.checkKnocked()
       setPinsKnocked(knocked)
       endBall()
     }, 1500)
   }, [setPinsKnocked, endBall])
 
-  // Handle frame over
+  // Handle frame over - with guard to prevent multiple processing
   useEffect(() => {
-    if (bowlingPhase === 'frameover') {
+    if (bowlingPhase === 'frameover' && !frameOverHandled.current) {
+      frameOverHandled.current = true
+
       let text = ''
       let color = '#F7C948'
       const lastScore = frameScores[frameScores.length - 1] ?? 0
@@ -77,6 +98,11 @@ function BowlingGame() {
           handleNextFrame()
         }
       }, 2000)
+    }
+
+    // Reset guard when leaving frameover phase
+    if (bowlingPhase !== 'frameover') {
+      frameOverHandled.current = false
     }
   }, [bowlingPhase, isStrike, isSpare, frameScores, addScore, currentFrame, triggerConfetti, addPopup, triggerQuiz])
 

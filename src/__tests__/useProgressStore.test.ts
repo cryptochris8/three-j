@@ -15,8 +15,14 @@ describe('useProgressStore', () => {
       expect(useProgressStore.getState().isGameUnlocked('basketball')).toBe(true)
     })
 
-    it('soccer is locked by default', () => {
-      expect(useProgressStore.getState().isGameUnlocked('soccer')).toBe(false)
+    it('base games are always unlocked', () => {
+      expect(useProgressStore.getState().isGameUnlocked('soccer')).toBe(true)
+      expect(useProgressStore.getState().isGameUnlocked('bowling')).toBe(true)
+      expect(useProgressStore.getState().isGameUnlocked('minigolf')).toBe(true)
+    })
+
+    it('all games are unlocked (unlock gating disabled)', () => {
+      expect(useProgressStore.getState().isGameUnlocked('some-future-game')).toBe(true)
     })
   })
 

@@ -1,5 +1,6 @@
 import { useEffect, useCallback, useRef, useMemo } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
+import * as THREE from 'three'
 import { Skybox } from '@/components/Skybox'
 import { RigidBody, type RapierRigidBody } from '@react-three/rapier'
 import { useGameStore } from '@/stores/useGameStore'
@@ -15,10 +16,15 @@ import { ScorePopup } from '@/components/ScorePopup'
 import { Confetti } from '@/components/Confetti'
 import { useGameScene } from '@/hooks/useGameScene'
 import { audioManager } from '@/core/AudioManager'
+import { BallTrail } from '@/components/BallTrail'
 
 function SoccerBall() {
   const ballRef = useRef<RapierRigidBody>(null)
   const { camera } = useThree()
+
+  // Pre-allocated vectors for smooth camera
+  const camTargetPos = useRef(new THREE.Vector3(0, 2, 6))
+  const camLookAtTarget = useRef(new THREE.Vector3(0, 1.2, -8))
 
   const phase = useSoccer((s) => s.phase)
   const setAim = useSoccer((s) => s.setAim)
@@ -28,13 +34,13 @@ function SoccerBall() {
   const registerSaved = useSoccer((s) => s.registerSaved)
   const registerMiss = useSoccer((s) => s.registerMiss)
 
-  // Camera
+  // Initialize camera
   useEffect(() => {
     camera.position.set(0, 2, 6)
     camera.lookAt(0, 1.2, -8)
   }, [camera])
 
-  // Power charge
+  // Power charge + ball physics + dynamic camera
   useFrame((state) => {
     if (phase === 'charging') {
       const t = state.clock.elapsedTime * 3
@@ -64,6 +70,25 @@ function SoccerBall() {
         }
       }
     }
+
+    // --- DYNAMIC CAMERA ---
+    if (phase === 'flying' && ballRef.current) {
+      const pos = ballRef.current.translation()
+      camTargetPos.current.set(
+        pos.x * 0.2,
+        2 + pos.y * 0.15,
+        Math.max(pos.z + 5, -1)
+      )
+      camLookAtTarget.current.set(pos.x, pos.y, pos.z)
+    } else if (phase === 'aiming' || phase === 'charging') {
+      // Return to default kicker view
+      camTargetPos.current.set(0, 2, 6)
+      camLookAtTarget.current.set(0, 1.2, -8)
+    }
+    // During 'result' phase, camera targets stay where they were (near goal)
+
+    camera.position.lerp(camTargetPos.current, 0.05)
+    camera.lookAt(camLookAtTarget.current)
   })
 
   // Mouse controls
@@ -151,20 +176,29 @@ function SoccerBall() {
   }, [])
 
   return (
-    <RigidBody
-      ref={ballRef}
-      colliders="ball"
-      mass={SOCCER_CONFIG.ballMass}
-      restitution={SOCCER_CONFIG.ballRestitution}
-      linearDamping={0.3}
-      position={SOCCER_CONFIG.ballStartPosition}
-      name="soccerball"
-    >
-      <mesh castShadow>
-        <icosahedronGeometry args={[SOCCER_CONFIG.ballRadius, 1]} />
-        <meshStandardMaterial color="#fff" roughness={0.5} />
-      </mesh>
-    </RigidBody>
+    <>
+      <RigidBody
+        ref={ballRef}
+        colliders="ball"
+        mass={SOCCER_CONFIG.ballMass}
+        restitution={SOCCER_CONFIG.ballRestitution}
+        linearDamping={0.3}
+        position={SOCCER_CONFIG.ballStartPosition}
+        name="soccerball"
+      >
+        <mesh castShadow>
+          <icosahedronGeometry args={[SOCCER_CONFIG.ballRadius, 1]} />
+          <meshStandardMaterial color="#fff" roughness={0.5} />
+        </mesh>
+      </RigidBody>
+
+      {/* Ball trail during flight */}
+      <BallTrail
+        getPosition={() => ballRef.current?.translation() ?? null}
+        color="#ffffff"
+        isActive={phase === 'flying'}
+      />
+    </>
   )
 }
 

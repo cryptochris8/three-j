@@ -1,7 +1,8 @@
-import { useRef } from 'react'
+import { useRef, useCallback } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { RigidBody, CuboidCollider, type RapierRigidBody } from '@react-three/rapier'
 import { Text } from '@react-three/drei'
+import * as THREE from 'three'
 import { Quaternion, Euler } from 'three'
 import type { HoleConfig } from './config'
 
@@ -83,6 +84,92 @@ function WaterHazard({ position, size, onEnter }: { position: [number, number, n
   )
 }
 
+// Ground surface is at y=0.05 (boxGeometry 0.1 thick, centered at y=0)
+const GROUND_Y = 0.05
+const CUP_RADIUS = 0.15
+
+function GolfCup({ position, onBallInHole }: { position: [number, number, number]; onBallInHole: () => void }) {
+  const flagRef = useRef<THREE.Group>(null)
+
+  // Gentle flag wave animation
+  useFrame((state) => {
+    if (flagRef.current) {
+      flagRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 2) * 0.08
+    }
+  })
+
+  const handleIntersection = useCallback(() => {
+    onBallInHole()
+  }, [onBallInHole])
+
+  return (
+    <group position={[position[0], GROUND_Y, position[2]]}>
+      {/* Dark recessed cup interior (cylinder going down into ground) */}
+      <mesh position={[0, -0.025, 0]}>
+        <cylinderGeometry args={[CUP_RADIUS, CUP_RADIUS, 0.06, 32, 1, true]} />
+        <meshStandardMaterial color="#0a0a0a" side={THREE.BackSide} />
+      </mesh>
+
+      {/* Cup bottom (dark) */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.055, 0]}>
+        <circleGeometry args={[CUP_RADIUS, 32]} />
+        <meshStandardMaterial color="#050505" />
+      </mesh>
+
+      {/* White rim ring (visible lip around hole - sits ON the surface) */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.004, 0]}>
+        <ringGeometry args={[CUP_RADIUS - 0.005, CUP_RADIUS + 0.025, 32]} />
+        <meshStandardMaterial color="#e8e8e8" metalness={0.6} roughness={0.2} />
+      </mesh>
+
+      {/* Dark circle on surface (the visible hole opening) */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.003, 0]}>
+        <circleGeometry args={[CUP_RADIUS, 32]} />
+        <meshStandardMaterial color="#111" />
+      </mesh>
+
+      {/* Flag group (with wave animation) */}
+      <group ref={flagRef}>
+        {/* Flag pole */}
+        <mesh position={[0, 0.3, 0]}>
+          <cylinderGeometry args={[0.008, 0.008, 0.6, 8]} />
+          <meshStandardMaterial color="#fff" />
+        </mesh>
+        {/* Flag */}
+        <mesh position={[0.08, 0.52, 0]}>
+          <planeGeometry args={[0.16, 0.1]} />
+          <meshStandardMaterial color="#E74C3C" side={THREE.DoubleSide} />
+        </mesh>
+      </group>
+
+      {/* Hole sensor (sized to match cup for reliable detection) */}
+      <RigidBody type="fixed" sensor onIntersectionEnter={handleIntersection}>
+        <CuboidCollider
+          args={[CUP_RADIUS * 0.8, 0.05, CUP_RADIUS * 0.8]}
+          position={[0, -0.02, 0]}
+        />
+      </RigidBody>
+    </group>
+  )
+}
+
+function TeeMarker({ position }: { position: [number, number, number] }) {
+  return (
+    <group position={[position[0], GROUND_Y + 0.003, position[2]]}>
+      {/* Tee circle on ground */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.05, 0.08, 16]} />
+        <meshStandardMaterial color="#fff" transparent opacity={0.7} />
+      </mesh>
+      {/* Center dot */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.001, 0]}>
+        <circleGeometry args={[0.015, 8]} />
+        <meshStandardMaterial color="#fff" transparent opacity={0.9} />
+      </mesh>
+    </group>
+  )
+}
+
 export function Course({ hole, onBallInHole, onWaterHazard }: CourseProps) {
   const themeColor = hole.theme === 'safari' ? '#4CAF50'
     : hole.theme === 'space' ? '#2C2C54'
@@ -112,28 +199,14 @@ export function Course({ hole, onBallInHole, onWaterHazard }: CourseProps) {
         </RigidBody>
       ))}
 
-      {/* Hole cup */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[hole.holePosition[0], 0.001, hole.holePosition[2]]}>
-        <circleGeometry args={[0.06, 16]} />
-        <meshStandardMaterial color="#111" />
-      </mesh>
-      {/* Hole flag */}
-      <mesh position={[hole.holePosition[0], 0.2, hole.holePosition[2]]}>
-        <cylinderGeometry args={[0.005, 0.005, 0.4, 6]} />
-        <meshStandardMaterial color="#fff" />
-      </mesh>
-      <mesh position={[hole.holePosition[0] + 0.06, 0.35, hole.holePosition[2]]}>
-        <planeGeometry args={[0.12, 0.08]} />
-        <meshStandardMaterial color="#E74C3C" side={2} />
-      </mesh>
+      {/* Tee marker at starting position */}
+      <TeeMarker position={hole.teePosition} />
 
-      {/* Hole sensor */}
-      <RigidBody type="fixed" sensor onIntersectionEnter={onBallInHole}>
-        <CuboidCollider
-          args={[0.04, 0.03, 0.04]}
-          position={[hole.holePosition[0], hole.holePosition[1], hole.holePosition[2]]}
-        />
-      </RigidBody>
+      {/* === GOLF CUP (3D recessed hole with visible rim) === */}
+      <GolfCup
+        position={[hole.holePosition[0], 0, hole.holePosition[2]]}
+        onBallInHole={onBallInHole}
+      />
 
       {/* Obstacles */}
       {hole.obstacles.map((obs, i) => {

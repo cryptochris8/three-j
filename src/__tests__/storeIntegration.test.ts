@@ -39,17 +39,19 @@ describe('store integration', () => {
       expect(useProgressStore.getState().unlockedGames).toContain('soccer')
     })
 
-    it('progressive unlocks through multiple games', () => {
+    it('all games always unlocked (unlock gating disabled)', () => {
+      // With isGameUnlocked always returning true, all games are accessible
       useProgressStore.getState().addStars(3)
       expect(useProgressStore.getState().isGameUnlocked('soccer')).toBe(true)
-      expect(useProgressStore.getState().isGameUnlocked('bowling')).toBe(false)
+      expect(useProgressStore.getState().isGameUnlocked('bowling')).toBe(true)
 
       useProgressStore.getState().addStars(5)
       expect(useProgressStore.getState().isGameUnlocked('bowling')).toBe(true)
-      expect(useProgressStore.getState().isGameUnlocked('minigolf')).toBe(false)
-
-      useProgressStore.getState().addStars(7)
       expect(useProgressStore.getState().isGameUnlocked('minigolf')).toBe(true)
+
+      // Stars still accumulate even though games are already unlocked
+      useProgressStore.getState().addStars(7)
+      expect(useProgressStore.getState().totalStars).toBe(15)
     })
   })
 
