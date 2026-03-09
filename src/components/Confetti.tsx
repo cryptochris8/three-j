@@ -1,4 +1,4 @@
-import { useRef, useMemo } from 'react'
+import { useRef, useMemo, useEffect } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
@@ -56,6 +56,19 @@ export function Confetti({ position, count = 50 }: ConfettiProps) {
     meshRef.current.instanceMatrix.needsUpdate = true
     if (meshRef.current.instanceColor) meshRef.current.instanceColor.needsUpdate = true
   })
+
+  useEffect(() => {
+    return () => {
+      if (meshRef.current) {
+        meshRef.current.geometry.dispose()
+        if (Array.isArray(meshRef.current.material)) {
+          meshRef.current.material.forEach(m => m.dispose())
+        } else {
+          meshRef.current.material.dispose()
+        }
+      }
+    }
+  }, [])
 
   return (
     <instancedMesh ref={meshRef} args={[undefined, undefined, count]}>

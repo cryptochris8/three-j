@@ -85,6 +85,7 @@ function SkyboxLoader({ config }: { config: typeof SKYBOX_CONFIG[string] }) {
     return () => {
       threeScene.background = null
       threeScene.environment = null
+      texture.dispose()
     }
   }, [texture, threeScene, config])
 

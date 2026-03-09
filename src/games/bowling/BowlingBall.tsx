@@ -5,6 +5,8 @@ import { RigidBody, type RapierRigidBody } from '@react-three/rapier'
 import { useBowling } from './useBowling'
 import { BOWLING_CONFIG } from './config'
 import { BallTrail } from '@/components/BallTrail'
+import { audioManager } from '@/core/AudioManager'
+import { useGameStore } from '@/stores/useGameStore'
 
 interface BowlingBallProps {
   onBallStopped: () => void
@@ -80,6 +82,7 @@ export function BowlingBall({ onBallStopped }: BowlingBallProps) {
       // Ball stopped or fell off lane
       if (speed < 0.1 || pos.y < -1 || pos.z < -9) {
         ballStopReported.current = true
+        audioManager.stop('bowlRoll')
         onBallStopped()
       }
     }
@@ -120,6 +123,7 @@ export function BowlingBall({ onBallStopped }: BowlingBallProps) {
     }
 
     const handleMouseDown = () => {
+      if (useGameStore.getState().gamePhase !== 'playing') return
       if (phase === 'positioning') {
         startCharging()
       } else if (phase === 'charging') {
@@ -132,6 +136,7 @@ export function BowlingBall({ onBallStopped }: BowlingBallProps) {
 
     // Keyboard controls: Arrow keys to position, Space to advance phases
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (useGameStore.getState().gamePhase !== 'playing') return
       if (e.code === 'Space') {
         e.preventDefault()
         if (phase === 'positioning') {
@@ -168,6 +173,7 @@ export function BowlingBall({ onBallStopped }: BowlingBallProps) {
     )
     ballRef.current.setLinvel({ x: spin * 0.5, y: 0, z: -power }, true)
     ballRef.current.setAngvel({ x: -power * 2, y: spin * 2, z: 0 }, true)
+    audioManager.play('bowlRoll')
   }, [ballStartPosition])
 
   return (

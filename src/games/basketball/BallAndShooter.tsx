@@ -1,15 +1,48 @@
-import { useRef, useEffect, useCallback } from 'react'
+import { useRef, useEffect, useCallback, useMemo } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { RigidBody, type RapierRigidBody } from '@react-three/rapier'
 import { useBasketball } from './useBasketball'
+import { useGameStore } from '@/stores/useGameStore'
 import { BASKETBALL_CONFIG } from './config'
 import { BallTrail } from '@/components/BallTrail'
+
+const TRAJECTORY_DOT_COUNT = 20
+const TRAJECTORY_DURATION = 1.5 // seconds of trajectory to preview
 
 export function BallAndShooter() {
   const ballRef = useRef<RapierRigidBody>(null)
   const missTimerRef = useRef<number | null>(null)
   const { camera } = useThree()
+
+  // Pre-create trajectory dot meshes (useMemo to avoid per-frame allocations)
+  const trajectoryDots = useMemo(() => {
+    const group = new THREE.Group()
+    for (let i = 0; i < TRAJECTORY_DOT_COUNT; i++) {
+      const geo = new THREE.SphereGeometry(0.03, 6, 6)
+      const mat = new THREE.MeshBasicMaterial({
+        color: 0xF7C948,
+        transparent: true,
+        opacity: 0.6 - (i / TRAJECTORY_DOT_COUNT) * 0.5,
+      })
+      const mesh = new THREE.Mesh(geo, mat)
+      mesh.visible = false
+      group.add(mesh)
+    }
+    group.visible = false
+    return group
+  }, [])
+
+  // Cleanup trajectory dot geometry/material on unmount
+  useEffect(() => {
+    return () => {
+      for (const child of trajectoryDots.children) {
+        const mesh = child as THREE.Mesh
+        mesh.geometry.dispose()
+        ;(mesh.material as THREE.MeshBasicMaterial).dispose()
+      }
+    }
+  }, [trajectoryDots])
 
   // Pre-allocated vectors for smooth camera transitions
   const camTargetPos = useRef(new THREE.Vector3(0, 3.5, 8))
@@ -36,12 +69,36 @@ export function BallAndShooter() {
     camera.lookAt(0, 2.5, -5)
   }, [camera])
 
-  // Power meter oscillation + dynamic camera
+  // Power meter oscillation + dynamic camera + trajectory preview
   useFrame((state) => {
     if (isPowerCharging) {
       const t = state.clock.elapsedTime * 3
       const normalizedPower = (Math.sin(t) + 1) / 2
       setPower(minPower + normalizedPower * (maxPower - minPower))
+
+      // Update trajectory preview dots
+      const currentPower = useBasketball.getState().power
+      const currentAim = useBasketball.getState().aimAngle
+      const angleRad = (launchAngle * Math.PI) / 180
+      const aimRad = (currentAim * Math.PI) / 180
+      const vx = Math.sin(aimRad) * currentPower * 0.3
+      const vy = Math.sin(angleRad) * currentPower
+      const vz = -Math.cos(aimRad) * Math.cos(angleRad) * currentPower
+      const gravity = -9.81
+
+      trajectoryDots.visible = true
+      for (let i = 0; i < TRAJECTORY_DOT_COUNT; i++) {
+        const tStep = (i / TRAJECTORY_DOT_COUNT) * TRAJECTORY_DURATION
+        const dot = trajectoryDots.children[i] as THREE.Mesh
+        dot.visible = true
+        dot.position.set(
+          ballStartPosition[0] + vx * tStep,
+          ballStartPosition[1] + vy * tStep + 0.5 * gravity * tStep * tStep,
+          ballStartPosition[2] + vz * tStep,
+        )
+      }
+    } else {
+      trajectoryDots.visible = false
     }
 
     // Dynamic camera: follow ball during flight, zoom near hoop
@@ -80,12 +137,14 @@ export function BallAndShooter() {
     }
 
     const handleMouseDown = () => {
+      if (useGameStore.getState().gamePhase !== 'playing') return
       if (!isBallFlying && shotsRemaining > 0) {
         startCharging()
       }
     }
 
     const handleMouseUp = () => {
+      if (useGameStore.getState().gamePhase !== 'playing') return
       if (!isPowerCharging) return
       const { power: shotPower, aimAngle: shotAngle } = shoot()
       launchBall(shotPower, shotAngle)
@@ -93,6 +152,7 @@ export function BallAndShooter() {
 
     // Keyboard controls: Arrow keys to aim, Space to charge/shoot
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (useGameStore.getState().gamePhase !== 'playing') return
       if (e.code === 'Space') {
         e.preventDefault()
         if (!isBallFlying && shotsRemaining > 0 && !isPowerCharging) {
@@ -110,6 +170,7 @@ export function BallAndShooter() {
     }
 
     const handleKeyUp = (e: KeyboardEvent) => {
+      if (useGameStore.getState().gamePhase !== 'playing') return
       if (e.code === 'Space' && isPowerCharging) {
         const { power: shotPower, aimAngle: shotAngle } = shoot()
         launchBall(shotPower, shotAngle)
@@ -221,6 +282,9 @@ export function BallAndShooter() {
           <meshStandardMaterial color="#F7C948" emissive="#F7C948" emissiveIntensity={2} />
         </mesh>
       )}
+
+      {/* Trajectory preview dots (visible during power charging) */}
+      <primitive object={trajectoryDots} />
     </>
   )
 }

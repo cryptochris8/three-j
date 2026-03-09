@@ -59,17 +59,22 @@ export function QuizModal({ question, onComplete }: QuizModalProps) {
   const isCorrect = selectedIndex === question.correctIndex
 
   return (
-    <div style={{
-      position: 'absolute',
-      inset: 0,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'rgba(0,0,0,0.8)',
-      backdropFilter: 'blur(10px)',
-      zIndex: 95,
-      pointerEvents: 'auto',
-    }}>
+    <div
+      onMouseDown={(e) => e.stopPropagation()}
+      onMouseUp={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()}
+      onPointerUp={(e) => e.stopPropagation()}
+      style={{
+        position: 'absolute',
+        inset: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'rgba(0,0,0,0.8)',
+        backdropFilter: 'blur(10px)',
+        zIndex: 95,
+        pointerEvents: 'auto',
+      }}>
       <div
         ref={modalRef}
         style={{

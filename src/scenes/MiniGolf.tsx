@@ -236,6 +236,17 @@ function GolfBall() {
     }
   })
 
+  // Stop ball immediately when holed so it doesn't roll back out
+  useEffect(() => {
+    if (phase === 'holed' && ballRef.current) {
+      ballRef.current.setLinvel({ x: 0, y: 0, z: 0 }, true)
+      ballRef.current.setAngvel({ x: 0, y: 0, z: 0 }, true)
+      // Sink ball into cup visually
+      const pos = ballRef.current.translation()
+      ballRef.current.setTranslation({ x: pos.x, y: pos.y - 0.03, z: pos.z }, true)
+    }
+  }, [phase])
+
   // Reset ball on new hole, water hazard, or out-of-bounds
   // The key prop forces remount, but this effect is a safety net for velocity reset
   useEffect(() => {
@@ -254,6 +265,7 @@ function GolfBall() {
   // Mouse controls for slingshot putt
   useEffect(() => {
     const handleMouseDown = (e: MouseEvent) => {
+      if (useGameStore.getState().gamePhase !== 'playing') return
       if (phase === 'aiming') {
         startDrag(e.clientX, e.clientY)
       }
@@ -266,6 +278,7 @@ function GolfBall() {
     }
 
     const handleMouseUp = () => {
+      if (useGameStore.getState().gamePhase !== 'playing') return
       if (isDragging) {
         if (ballRef.current) {
           const pos = ballRef.current.translation()
@@ -286,6 +299,7 @@ function GolfBall() {
     // Keyboard controls
     const kbDir = { x: 0, z: 0 }
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (useGameStore.getState().gamePhase !== 'playing') return
       if (phase !== 'aiming') return
       if (e.code === 'ArrowLeft') kbDir.x = -1
       if (e.code === 'ArrowRight') kbDir.x = 1
@@ -366,6 +380,7 @@ function MinigolfGame() {
   const totalStrokes = useMinigolf((s) => s.totalStrokes)
   const ballHoled = useMinigolf((s) => s.ballHoled)
   const resetGame = useMinigolf((s) => s.resetGame)
+  const lastEvent = useMinigolf((s) => s.lastEvent)
 
   const { popups, showConfetti, addPopup, removePopup, triggerConfetti, triggerQuiz, endGame } = useGameScene('minigolf', () => resetGame(golfConfig.maxStrokes))
 
@@ -416,11 +431,11 @@ function MinigolfGame() {
 
   // Handle holed -> quiz or next hole
   useEffect(() => {
-    if (golfPhase === 'holed') {
-      setTimeout(() => {
-        triggerQuiz('trivia')
-      }, 2000)
-    }
+    if (golfPhase !== 'holed') return
+    const timer = setTimeout(() => {
+      triggerQuiz('trivia')
+    }, 2000)
+    return () => clearTimeout(timer)
   }, [golfPhase, triggerQuiz])
 
   // Game done
@@ -430,6 +445,22 @@ function MinigolfGame() {
       endGame()
     }
   }, [golfPhase, totalStrokes, addScore, endGame])
+
+  // Announce hole name on hole change
+  useEffect(() => {
+    if (gamePhase === 'playing') {
+      const name = holeConfig.name
+      addPopup(name, [holeConfig.teePosition[0], 1.5, holeConfig.teePosition[2]], '#F7C948')
+    }
+  }, [currentHole]) // Only trigger on hole change
+
+  // Out of bounds feedback
+  useEffect(() => {
+    if (lastEvent === 'oob') {
+      addPopup('Out of Bounds!', [0, 1, 0], '#FF6B35')
+      useMinigolf.setState({ lastEvent: null })
+    }
+  }, [lastEvent, addPopup])
 
   return (
     <>

@@ -18,11 +18,12 @@ import { BasketballOverlay } from '@/ui/BasketballUI'
 import { SoccerOverlay } from '@/ui/SoccerUI'
 import { BowlingOverlay } from '@/ui/BowlingUI'
 import { MinigolfOverlay } from '@/ui/MinigolfUI'
+import { HubOverlay } from '@/ui/HubOverlay'
 
-// Wrap a scene component with an ErrorBoundary
+// Wrap a scene component with a Canvas-safe ErrorBoundary (renders null on error, not DOM)
 function withErrorBoundary(Component: ComponentType, gameName: string): ComponentType {
   const Wrapped = () => (
-    <ErrorBoundary gameName={gameName}>
+    <ErrorBoundary gameName={gameName} canvasSafe>
       <Component />
     </ErrorBoundary>
   )
@@ -31,7 +32,7 @@ function withErrorBoundary(Component: ComponentType, gameName: string): Componen
 }
 
 export const GAME_REGISTRY: Partial<Record<Scene, GameEntry>> = {
-  hub: { scene: withErrorBoundary(Hub, 'Hub') },
+  hub: { scene: withErrorBoundary(Hub, 'Hub'), overlay: HubOverlay },
   basketball: { scene: withErrorBoundary(Basketball, 'Basketball'), overlay: BasketballOverlay },
   soccer: { scene: withErrorBoundary(Soccer, 'Soccer'), overlay: SoccerOverlay },
   bowling: { scene: withErrorBoundary(Bowling, 'Bowling'), overlay: BowlingOverlay },

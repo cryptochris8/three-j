@@ -20,6 +20,7 @@ import { BallTrail } from '@/components/BallTrail'
 
 function SoccerBall() {
   const ballRef = useRef<RapierRigidBody>(null)
+  const shotTimerRef = useRef<number | null>(null)
   const { camera } = useThree()
 
   // Pre-allocated vectors for smooth camera
@@ -39,6 +40,24 @@ function SoccerBall() {
     camera.position.set(0, 2, 6)
     camera.lookAt(0, 1.2, -8)
   }, [camera])
+
+  // Shot timeout: auto-register miss if ball flies for more than 5 seconds
+  useEffect(() => {
+    if (phase === 'flying') {
+      shotTimerRef.current = window.setTimeout(() => {
+        const currentPhase = useSoccer.getState().phase
+        if (currentPhase === 'flying') {
+          registerMiss()
+        }
+      }, 5000)
+    }
+    return () => {
+      if (shotTimerRef.current) {
+        clearTimeout(shotTimerRef.current)
+        shotTimerRef.current = null
+      }
+    }
+  }, [phase, registerMiss])
 
   // Power charge + ball physics + dynamic camera
   useFrame((state) => {
@@ -63,10 +82,13 @@ function SoccerBall() {
       const pos = ballRef.current.translation()
 
       if (speed < 0.3 || pos.z < -12 || pos.y < -2) {
-        if (pos.x > -SOCCER_CONFIG.goalWidth / 2 && pos.x < SOCCER_CONFIG.goalWidth / 2 && pos.z < -7) {
-          registerSaved()
-        } else {
+        // Ball went past goal line but outside goal frame = miss
+        if (pos.z < -12 || pos.y < -2 || pos.y > SOCCER_CONFIG.goalHeight + 1) {
           registerMiss()
+        } else if (pos.x > -SOCCER_CONFIG.goalWidth / 2 && pos.x < SOCCER_CONFIG.goalWidth / 2 && pos.z < -7) {
+          registerSaved()  // Inside goal area but keeper blocked it
+        } else {
+          registerMiss()  // Outside goal area
         }
       }
     }
@@ -102,12 +124,14 @@ function SoccerBall() {
     }
 
     const handleMouseDown = () => {
+      if (useGameStore.getState().gamePhase !== 'playing') return
       if (phase === 'aiming') {
         startCharging()
       }
     }
 
     const handleMouseUp = () => {
+      if (useGameStore.getState().gamePhase !== 'playing') return
       if (phase === 'charging') {
         const { power: p, aimX: ax, aimY: ay } = kick()
         launchBall(p, ax, ay)
@@ -116,6 +140,7 @@ function SoccerBall() {
 
     // Keyboard controls
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (useGameStore.getState().gamePhase !== 'playing') return
       if (e.code === 'Space') {
         e.preventDefault()
         if (phase === 'aiming') startCharging()
@@ -131,6 +156,7 @@ function SoccerBall() {
     }
 
     const handleKeyUp = (e: KeyboardEvent) => {
+      if (useGameStore.getState().gamePhase !== 'playing') return
       if (e.code === 'Space' && phase === 'charging') {
         const { power: p, aimX: ax, aimY: ay } = kick()
         launchBall(p, ax, ay)
@@ -246,8 +272,9 @@ function SoccerGame() {
         color = '#E74C3C'
         audioManager.playVoice('greatSave')
       } else {
-        text = 'Miss!'
+        text = 'Wide!'
         color = '#888'
+        audioManager.play('whistle')
       }
 
       const opScored = simulateOpponent()

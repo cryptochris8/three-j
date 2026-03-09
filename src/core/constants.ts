@@ -69,6 +69,22 @@ export const STAR_THRESHOLDS = {
 export const CAMERA = {
   fov: 60,
   near: 0.1,
-  far: 200,
+  far: 500,
   defaultPosition: [0, 5, 10] as [number, number, number],
+} as const
+
+// Hub world
+export const HUB = {
+  worldSize: 80,
+  playerSpeed: 6,
+  playerHeight: 1.8,
+  cameraOffset: [0, 8, 12] as [number, number, number],
+  cameraLookAhead: 2,
+  npcInteractDistance: 4,
+  npcs: [
+    { game: 'basketball' as const, label: 'Basketball', position: [-15, 0, -10] as [number, number, number], color: '#FF6B35', skinUrl: '/skins/npc-basketball.png' },
+    { game: 'soccer' as const,     label: 'Soccer',     position: [15, 0, -10] as [number, number, number],  color: '#4CAF50', skinUrl: '/skins/npc-soccer.png' },
+    { game: 'bowling' as const,    label: 'Bowling',     position: [-15, 0, 10] as [number, number, number], color: '#2196F3', skinUrl: '/skins/npc-bowling.png' },
+    { game: 'minigolf' as const,   label: 'Mini-Golf',   position: [15, 0, 10] as [number, number, number],  color: '#9C27B0', skinUrl: '/skins/npc-minigolf.png' },
+  ],
 } as const

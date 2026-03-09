@@ -16,6 +16,9 @@ export function BowlingOverlay() {
   const grantExtraBall = useBowling((s) => s.grantExtraBall)
   const resetGame = useBowling((s) => s.resetGame)
   const nextFrame = useBowling((s) => s.nextFrame)
+  const frameBalls = useBowling((s) => s.frameBalls)
+  const getScorecard = useBowling((s) => s.getScorecard)
+  const scorecard = getScorecard()
 
   const showControls = bowlingPhase === 'positioning' || bowlingPhase === 'charging' || bowlingPhase === 'spinning'
 
@@ -54,10 +57,70 @@ export function BowlingOverlay() {
         Frame {currentFrame} / {effectiveTotalFrames}
       </div>
 
+      {/* Scorecard */}
+      <div style={{
+        position: 'absolute',
+        top: '110px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        display: 'flex',
+        gap: '2px',
+        background: 'rgba(0,0,0,0.7)',
+        padding: '0.4rem',
+        borderRadius: '10px',
+        pointerEvents: 'none',
+        zIndex: 60,
+      }}>
+        {Array.from({ length: effectiveTotalFrames }, (_, i) => {
+          const frame = frameBalls[i]
+          const score = scorecard[i]
+          const ball1 = frame?.[0]
+          const ball2 = frame?.[1]
+          const isStrikeFrame = ball1 === 10
+          const isSpareFrame = !isStrikeFrame && ball1 !== undefined && ball2 !== undefined && ball1 + ball2 === 10
+
+          return (
+            <div key={i} style={{
+              width: '36px',
+              border: i === currentFrame - 1 ? '2px solid #F7C948' : '1px solid rgba(255,255,255,0.2)',
+              borderRadius: '4px',
+              textAlign: 'center',
+              padding: '2px',
+              background: i === currentFrame - 1 ? 'rgba(247,201,72,0.15)' : 'transparent',
+            }}>
+              <div style={{ fontSize: '0.55rem', opacity: 0.5, marginBottom: '1px' }}>{i + 1}</div>
+              <div style={{ fontSize: '0.7rem', height: '16px', display: 'flex', justifyContent: 'center', gap: '2px' }}>
+                {isStrikeFrame ? (
+                  <span style={{ color: '#2ECC71', fontWeight: 700 }}>X</span>
+                ) : (
+                  <>
+                    <span>{ball1 !== undefined ? (ball1 === 0 ? '-' : ball1) : ''}</span>
+                    {isSpareFrame ? (
+                      <span style={{ color: '#4FC3F7', fontWeight: 700 }}>/</span>
+                    ) : (
+                      <span>{ball2 !== undefined ? (ball2 === 0 ? '-' : ball2) : ''}</span>
+                    )}
+                  </>
+                )}
+              </div>
+              <div style={{
+                fontSize: '0.65rem',
+                fontWeight: 600,
+                borderTop: '1px solid rgba(255,255,255,0.1)',
+                paddingTop: '1px',
+                minHeight: '14px',
+              }}>
+                {score !== null && score !== undefined ? score : ''}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
       {hasExtraBall && (
         <div style={{
           position: 'absolute',
-          top: '100px',
+          top: '180px',
           left: '50%',
           transform: 'translateX(-50%)',
           background: 'linear-gradient(135deg, #FFD700, #FF6B35)',

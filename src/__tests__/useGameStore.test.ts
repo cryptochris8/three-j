@@ -43,11 +43,11 @@ describe('useGameStore', () => {
   })
 
   describe('returnToHub', () => {
-    it('returns to hub scene with menu phase', () => {
+    it('returns to hub scene with playing phase', () => {
       useGameStore.getState().setScene('basketball')
       useGameStore.getState().returnToHub()
       expect(useGameStore.getState().currentScene).toBe('hub')
-      expect(useGameStore.getState().gamePhase).toBe('menu')
+      expect(useGameStore.getState().gamePhase).toBe('playing')
     })
   })
 

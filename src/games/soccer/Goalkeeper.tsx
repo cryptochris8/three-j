@@ -1,8 +1,12 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, Suspense } from 'react'
+import * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
-import { RigidBody, type RapierRigidBody } from '@react-three/rapier'
+import { RigidBody, CuboidCollider, type RapierRigidBody } from '@react-three/rapier'
 import { SOCCER_CONFIG, KEEPER_DIFFICULTY } from './config'
+import { HytopiaAvatar } from '@/components/HytopiaAvatar'
 import type { Difficulty } from '@/types'
+
+const GOALKEEPER_SKIN = '/skins/goalkeeper.png'
 
 interface GoalkeeperProps {
   difficulty: Difficulty
@@ -14,6 +18,7 @@ interface GoalkeeperProps {
 
 export function Goalkeeper({ difficulty, ballAimX, ballAimY, isBallKicked, isSlowed }: GoalkeeperProps) {
   const bodyRef = useRef<RapierRigidBody>(null)
+  const meshGroupRef = useRef<THREE.Group>(null!)
   const targetX = useRef(0)
   const targetY = useRef(SOCCER_CONFIG.keeperStartPosition[1])
   const hasDived = useRef(false)
@@ -78,6 +83,12 @@ export function Goalkeeper({ difficulty, ballAimX, ballAimY, isBallKicked, isSlo
           z: pos.z,
         })
       }
+
+      // Visual dive tilt: lean toward dive direction
+      if (meshGroupRef.current) {
+        const tilt = Math.sign(targetX.current - pos.x) * Math.min(Math.abs(targetX.current - pos.x) * 0.15, 0.52)
+        meshGroupRef.current.rotation.z = THREE.MathUtils.lerp(meshGroupRef.current.rotation.z, tilt, 0.1)
+      }
     } else if (!isBallKicked) {
       // Idle sway
       const sway = Math.sin(state.clock.elapsedTime * 2) * 0.3
@@ -86,6 +97,11 @@ export function Goalkeeper({ difficulty, ballAimX, ballAimY, isBallKicked, isSlo
         y: pos.y,
         z: pos.z,
       })
+
+      // Reset visual rotation when idle
+      if (meshGroupRef.current) {
+        meshGroupRef.current.rotation.z = THREE.MathUtils.lerp(meshGroupRef.current.rotation.z, 0, 0.1)
+      }
     }
   })
 
@@ -94,27 +110,20 @@ export function Goalkeeper({ difficulty, ballAimX, ballAimY, isBallKicked, isSlo
       ref={bodyRef}
       type="kinematicPosition"
       position={SOCCER_CONFIG.keeperStartPosition}
-      colliders="cuboid"
+      colliders={false}
     >
-      {/* Body */}
-      <mesh castShadow>
-        <boxGeometry args={[SOCCER_CONFIG.keeperWidth, SOCCER_CONFIG.keeperHeight, SOCCER_CONFIG.keeperDepth]} />
-        <meshStandardMaterial color="#FFD700" roughness={0.6} />
-      </mesh>
-      {/* Head */}
-      <mesh position={[0, SOCCER_CONFIG.keeperHeight * 0.55, 0]} castShadow>
-        <sphereGeometry args={[0.15, 16, 16]} />
-        <meshStandardMaterial color="#FFDAB9" />
-      </mesh>
-      {/* Arms (simplified) */}
-      <mesh position={[-0.4, 0.2, 0]} castShadow>
-        <boxGeometry args={[0.3, 0.12, 0.12]} />
-        <meshStandardMaterial color="#FFD700" />
-      </mesh>
-      <mesh position={[0.4, 0.2, 0]} castShadow>
-        <boxGeometry args={[0.3, 0.12, 0.12]} />
-        <meshStandardMaterial color="#FFD700" />
-      </mesh>
+      <CuboidCollider
+        args={[SOCCER_CONFIG.keeperWidth / 2, SOCCER_CONFIG.keeperHeight / 2, SOCCER_CONFIG.keeperDepth / 2]}
+        position={[0, 0, 0]}
+      />
+      <group ref={meshGroupRef}>
+        {/* Offset avatar down and rotate 180° to face the shooter (+Z) */}
+        <group position={[0, -SOCCER_CONFIG.keeperHeight / 2, 0]} rotation={[0, Math.PI, 0]}>
+          <Suspense fallback={null}>
+            <HytopiaAvatar skinUrl={GOALKEEPER_SKIN} scale={1} />
+          </Suspense>
+        </group>
+      </group>
     </RigidBody>
   )
 }

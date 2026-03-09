@@ -9,6 +9,7 @@ interface BowlingState {
   effectiveTotalFrames: number
   ballsThisFrame: number
   frameScores: number[]
+  frameBalls: number[][]
   pinsKnocked: boolean[]
   totalPinsThisFrame: number
   bowlerX: number
@@ -29,6 +30,7 @@ interface BowlingState {
   nextFrame: () => void
   grantExtraBall: () => void
   resetGame: (totalFrames?: number) => void
+  getScorecard: () => (number | null)[]
 }
 
 export const useBowling = create<BowlingState>((set, get) => ({
@@ -37,6 +39,7 @@ export const useBowling = create<BowlingState>((set, get) => ({
   effectiveTotalFrames: BOWLING_CONFIG.totalFrames,
   ballsThisFrame: 0,
   frameScores: [],
+  frameBalls: [],
   pinsKnocked: Array(10).fill(false),
   totalPinsThisFrame: 0,
   bowlerX: 0,
@@ -68,7 +71,7 @@ export const useBowling = create<BowlingState>((set, get) => ({
   },
 
   endBall: () => {
-    const { pinsKnocked, ballsThisFrame, hasExtraBall } = get()
+    const { pinsKnocked, ballsThisFrame, hasExtraBall, frameBalls } = get()
     const knockedCount = pinsKnocked.filter(Boolean).length
 
     if (knockedCount === 10 && ballsThisFrame === 1) {
@@ -79,15 +82,22 @@ export const useBowling = create<BowlingState>((set, get) => ({
         isStrike: true,
         isSpare: false,
         frameScores: [...s.frameScores, score],
+        frameBalls: [...s.frameBalls, [10]],
       }))
     } else if (knockedCount === 10 && ballsThisFrame === 2) {
       // Spare
       const score = BOWLING_CONFIG.sparePoints
+      const ball1 = frameBalls[frameBalls.length - 1]?.[0] ?? 0
+      const ball2 = 10 - ball1
       set((s) => ({
         phase: 'frameover',
         isStrike: false,
         isSpare: true,
         frameScores: [...s.frameScores, score],
+        frameBalls: [
+          ...s.frameBalls.slice(0, -1),
+          [ball1, ball2],
+        ],
       }))
     } else if (ballsThisFrame >= 2 && hasExtraBall) {
       // Extra ball powerup: get one more try
@@ -95,15 +105,24 @@ export const useBowling = create<BowlingState>((set, get) => ({
     } else if (ballsThisFrame >= 2) {
       // Open frame
       const score = knockedCount * BOWLING_CONFIG.pinPoint
+      const ball1 = frameBalls[frameBalls.length - 1]?.[0] ?? 0
+      const ball2 = knockedCount - ball1
       set((s) => ({
         phase: 'frameover',
         isStrike: false,
         isSpare: false,
         frameScores: [...s.frameScores, score],
+        frameBalls: [
+          ...s.frameBalls.slice(0, -1),
+          [ball1, ball2],
+        ],
       }))
     } else {
-      // First ball, not a strike - second ball
-      set({ phase: 'positioning' })
+      // First ball, not a strike - record ball 1 pins
+      set((s) => ({
+        phase: 'positioning',
+        frameBalls: [...s.frameBalls, [knockedCount]],
+      }))
     }
   },
 
@@ -136,6 +155,7 @@ export const useBowling = create<BowlingState>((set, get) => ({
     effectiveTotalFrames: totalFrames ?? BOWLING_CONFIG.totalFrames,
     ballsThisFrame: 0,
     frameScores: [],
+    frameBalls: [],
     pinsKnocked: Array(10).fill(false),
     totalPinsThisFrame: 0,
     bowlerX: 0,
@@ -145,4 +165,43 @@ export const useBowling = create<BowlingState>((set, get) => ({
     isSpare: false,
     hasExtraBall: false,
   }),
+
+  getScorecard: () => {
+    const { frameBalls } = get()
+    const scores: (number | null)[] = []
+    let runningTotal = 0
+
+    for (let i = 0; i < frameBalls.length; i++) {
+      const frame = frameBalls[i]
+      const ball1 = frame[0] ?? 0
+      const ball2 = frame[1] ?? 0
+
+      if (ball1 === 10) {
+        // Strike: need next 2 balls
+        const next1 = frameBalls[i + 1]?.[0]
+        const next2 = frameBalls[i + 1]?.[0] === 10
+          ? frameBalls[i + 2]?.[0]
+          : frameBalls[i + 1]?.[1]
+        if (next1 !== undefined && next2 !== undefined) {
+          runningTotal += 10 + next1 + next2
+          scores.push(runningTotal)
+        } else {
+          scores.push(null) // Can't calculate yet
+        }
+      } else if (ball1 + ball2 === 10) {
+        // Spare: need next 1 ball
+        const next1 = frameBalls[i + 1]?.[0]
+        if (next1 !== undefined) {
+          runningTotal += 10 + next1
+          scores.push(runningTotal)
+        } else {
+          scores.push(null)
+        }
+      } else {
+        runningTotal += ball1 + ball2
+        scores.push(runningTotal)
+      }
+    }
+    return scores
+  },
 }))

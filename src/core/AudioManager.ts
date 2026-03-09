@@ -125,6 +125,10 @@ class AudioManager {
     this.sounds.get(name)?.play()
   }
 
+  stop(name: SoundName) {
+    this.sounds.get(name)?.stop()
+  }
+
   playWithPitch(name: SoundName, pitchMultiplier: number) {
     const sound = this.sounds.get(name)
     if (sound) {

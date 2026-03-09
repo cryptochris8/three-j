@@ -4,6 +4,8 @@ interface Props {
   children: ReactNode
   fallback?: ReactNode
   gameName?: string
+  /** When true, renders null on error (safe for R3F Canvas). Default: false */
+  canvasSafe?: boolean
 }
 
 interface State {
@@ -29,6 +31,9 @@ export class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       if (this.props.fallback) return this.props.fallback
+
+      // Inside R3F Canvas, we cannot render DOM elements - return null
+      if (this.props.canvasSafe) return null
 
       return (
         <div style={{

@@ -19,6 +19,7 @@ interface MinigolfState {
   resetCounter: number
   hasGuideLine: boolean
   effectiveMaxStrokes: number
+  lastEvent: string | null
 
   startDrag: (x: number, y: number) => void
   updateDrag: (x: number, y: number) => void
@@ -49,6 +50,7 @@ export const useMinigolf = create<MinigolfState>((set, get) => ({
   resetCounter: 0,
   hasGuideLine: false,
   effectiveMaxStrokes: MINIGOLF_CONFIG.maxStrokes,
+  lastEvent: null,
 
   startDrag: (x, y) => set({ isDragging: true, dragStartX: x, dragStartY: y, dragEndX: x, dragEndY: y }),
 
@@ -124,6 +126,7 @@ export const useMinigolf = create<MinigolfState>((set, get) => ({
     set((s) => ({
       phase: 'aiming',
       resetCounter: s.resetCounter + 1,
+      lastEvent: 'oob',
     }))
   },
 
@@ -163,5 +166,6 @@ export const useMinigolf = create<MinigolfState>((set, get) => ({
     hasGuideLine: false,
     lastBallPosition: COURSES[0].teePosition,
     effectiveMaxStrokes: maxStrokes ?? MINIGOLF_CONFIG.maxStrokes,
+    lastEvent: null,
   }),
 }))

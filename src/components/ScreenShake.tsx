@@ -26,6 +26,7 @@ export function ScreenShake({ intensity = 0.15, duration = 0.3, active }: Screen
     }
     prevActive.current = active
 
+    // Skip per-frame work when not shaking
     if (startTime.current < 0) return
     const elapsed = state.clock.elapsedTime - startTime.current
 

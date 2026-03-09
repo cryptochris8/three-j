@@ -1,4 +1,4 @@
-import { useRef, useCallback } from 'react'
+import { useRef, useCallback, useEffect } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { RigidBody, CuboidCollider, type RapierRigidBody } from '@react-three/rapier'
 import { Text } from '@react-three/drei'
@@ -58,9 +58,23 @@ function Bumper({ position }: { position: [number, number, number] }) {
 }
 
 function Ramp({ position, size }: { position: [number, number, number]; size: [number, number, number] }) {
+  // Create a gentle incline: back edge (facing tee, +Z) at ground level,
+  // slopes upward toward the hole (-Z direction)
+  const rampAngle = 0.1 // ~5.7 degree incline
+  const halfH = size[1] / 2
+  const halfZ = size[2] / 2
+  // Calculate Y so the back-bottom edge sits flush at ground level
+  const backBottomLocalY = -halfH * Math.cos(rampAngle) + halfZ * Math.sin(rampAngle)
+  const centerY = GROUND_Y - backBottomLocalY
+
   return (
-    <RigidBody type="fixed" colliders="cuboid" position={position}>
-      <mesh rotation={[-0.15, 0, 0]} castShadow receiveShadow>
+    <RigidBody
+      type="fixed"
+      colliders="cuboid"
+      position={[position[0], centerY, position[2]]}
+      rotation={[-rampAngle, 0, 0]}
+    >
+      <mesh castShadow receiveShadow>
         <boxGeometry args={size} />
         <meshStandardMaterial color="#A0522D" />
       </mesh>
@@ -86,10 +100,15 @@ function WaterHazard({ position, size, onEnter }: { position: [number, number, n
 
 // Ground surface is at y=0.05 (boxGeometry 0.1 thick, centered at y=0)
 const GROUND_Y = 0.05
-const CUP_RADIUS = 0.15
+const CUP_RADIUS = 0.08 // ~3x ball radius (0.025) for realistic look
+const CUP_DEPTH = 0.14  // deep enough to trap the ball
 
 function GolfCup({ position, onBallInHole }: { position: [number, number, number]; onBallInHole: () => void }) {
   const flagRef = useRef<THREE.Group>(null)
+  const holedRef = useRef(false)
+
+  // Reset holed guard when position changes (new hole)
+  useEffect(() => { holedRef.current = false }, [position])
 
   // Gentle flag wave animation
   useFrame((state) => {
@@ -99,26 +118,30 @@ function GolfCup({ position, onBallInHole }: { position: [number, number, number
   })
 
   const handleIntersection = useCallback(() => {
+    if (holedRef.current) return
+    holedRef.current = true
     onBallInHole()
+    // Reset after a delay to allow re-use on next hole
+    setTimeout(() => { holedRef.current = false }, 3000)
   }, [onBallInHole])
 
   return (
     <group position={[position[0], GROUND_Y, position[2]]}>
       {/* Dark recessed cup interior (cylinder going down into ground) */}
-      <mesh position={[0, -0.025, 0]}>
-        <cylinderGeometry args={[CUP_RADIUS, CUP_RADIUS, 0.06, 32, 1, true]} />
+      <mesh position={[0, -CUP_DEPTH / 2, 0]}>
+        <cylinderGeometry args={[CUP_RADIUS, CUP_RADIUS, CUP_DEPTH, 32, 1, true]} />
         <meshStandardMaterial color="#0a0a0a" side={THREE.BackSide} />
       </mesh>
 
       {/* Cup bottom (dark) */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.055, 0]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -CUP_DEPTH, 0]}>
         <circleGeometry args={[CUP_RADIUS, 32]} />
         <meshStandardMaterial color="#050505" />
       </mesh>
 
       {/* White rim ring (visible lip around hole - sits ON the surface) */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.004, 0]}>
-        <ringGeometry args={[CUP_RADIUS - 0.005, CUP_RADIUS + 0.025, 32]} />
+        <ringGeometry args={[CUP_RADIUS, CUP_RADIUS + 0.02, 32]} />
         <meshStandardMaterial color="#e8e8e8" metalness={0.6} roughness={0.2} />
       </mesh>
 
@@ -142,11 +165,11 @@ function GolfCup({ position, onBallInHole }: { position: [number, number, number
         </mesh>
       </group>
 
-      {/* Hole sensor (sized to match cup for reliable detection) */}
+      {/* Hole sensor - sits deep in the cup so only balls that drop in trigger it */}
       <RigidBody type="fixed" sensor onIntersectionEnter={handleIntersection}>
         <CuboidCollider
-          args={[CUP_RADIUS * 0.8, 0.05, CUP_RADIUS * 0.8]}
-          position={[0, -0.02, 0]}
+          args={[CUP_RADIUS * 0.7, CUP_DEPTH / 2, CUP_RADIUS * 0.7]}
+          position={[0, -CUP_DEPTH / 2, 0]}
         />
       </RigidBody>
     </group>

@@ -84,7 +84,7 @@ describe('game session logic', () => {
       useGameStore.getState().setScene('basketball')
       useGameStore.getState().returnToHub()
       expect(useGameStore.getState().currentScene).toBe('hub')
-      expect(useGameStore.getState().gamePhase).toBe('menu')
+      expect(useGameStore.getState().gamePhase).toBe('playing')
     })
 
     it('returnToMenu sets scene and phase', () => {

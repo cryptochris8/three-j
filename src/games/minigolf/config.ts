@@ -63,7 +63,7 @@ export const COURSES: HoleConfig[] = [
       { position: [0, 0.1, 4.55], size: [1.7, 0.2, 0.1] },
     ],
     obstacles: [
-      { type: 'ramp', position: [0, 0, 0], size: [1.2, 0.2, 1.5] },
+      { type: 'ramp', position: [0, 0, 0], size: [1.2, 0.06, 1.5] },
     ],
     funFact: 'Elephants are the only animals that can\'t jump!',
   },
@@ -180,7 +180,7 @@ export const COURSES: HoleConfig[] = [
     ],
     obstacles: [
       { type: 'bumper', position: [0, 0.08, -2] },
-      { type: 'ramp', position: [0, 0, -4], size: [1.5, 0.15, 1] },
+      { type: 'ramp', position: [0, 0, -4], size: [1.5, 0.06, 1] },
     ],
     funFact: 'The deepest point in the ocean is the Mariana Trench at 36,000 feet!',
   },

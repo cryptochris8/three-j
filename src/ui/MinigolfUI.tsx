@@ -15,6 +15,7 @@ export function MinigolfOverlay() {
   const dragEndY = useMinigolf((s) => s.dragEndY)
   const hasGuideLine = useMinigolf((s) => s.hasGuideLine)
   const grantGuideLine = useMinigolf((s) => s.grantGuideLine)
+  const strokesPerHole = useMinigolf((s) => s.strokesPerHole)
   const nextHole = useMinigolf((s) => s.nextHole)
   const resetGame = useMinigolf((s) => s.resetGame)
 
@@ -68,13 +69,54 @@ export function MinigolfOverlay() {
         </div>
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: '0.7rem', opacity: 0.6 }}>STROKES</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{strokes}</div>
+          <div style={{
+            fontSize: '1.5rem',
+            fontWeight: 700,
+            color: strokes === 0 ? '#fff' : strokes <= holeConfig.par - 1 ? '#2ECC71' : strokes === holeConfig.par ? '#4FC3F7' : strokes === holeConfig.par + 1 ? '#F7C948' : '#E74C3C'
+          }}>{strokes}</div>
         </div>
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: '0.7rem', opacity: 0.6 }}>TOTAL</div>
           <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{totalStrokes}</div>
         </div>
       </div>
+
+      {/* Mini Scorecard */}
+      {strokesPerHole.length > 0 && (
+        <div style={{
+          position: 'absolute',
+          top: '75px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          display: 'flex',
+          gap: '3px',
+          background: 'rgba(0,0,0,0.7)',
+          padding: '0.3rem 0.5rem',
+          borderRadius: '10px',
+          backdropFilter: 'blur(8px)',
+          pointerEvents: 'none',
+          zIndex: 60,
+        }}>
+          {strokesPerHole.map((strokes, i) => {
+            const par = COURSES[i].par
+            const diff = strokes - par
+            const color = diff <= -2 ? '#FFD700' : diff <= -1 ? '#2ECC71' : diff === 0 ? '#4FC3F7' : diff === 1 ? '#F7C948' : '#E74C3C'
+            const label = diff <= -2 ? 'Eagle' : diff === -1 ? 'Birdie' : diff === 0 ? 'Par' : diff === 1 ? 'Bogey' : `+${diff}`
+            return (
+              <div key={i} style={{
+                textAlign: 'center',
+                padding: '2px 6px',
+                borderRadius: '4px',
+                minWidth: '30px',
+              }}>
+                <div style={{ fontSize: '0.5rem', opacity: 0.5 }}>H{i + 1}</div>
+                <div style={{ fontSize: '0.8rem', fontWeight: 700, color }}>{strokes}</div>
+                <div style={{ fontSize: '0.45rem', color, opacity: 0.8 }}>{label}</div>
+              </div>
+            )
+          })}
+        </div>
+      )}
 
       {hasGuideLine && (
         <div style={{

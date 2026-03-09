@@ -15,8 +15,10 @@ export function ScorePopup({ text, position, color = '#F7C948', onComplete }: Sc
   const [opacity, setOpacity] = useState(1)
   const [scale, setScale] = useState(0.01)
   const startClock = useRef(-1)
+  const completedRef = useRef(false)
 
   useFrame((state) => {
+    if (completedRef.current) return
     if (!groupRef.current) return
     if (startClock.current < 0) startClock.current = state.clock.elapsedTime
     const elapsed = state.clock.elapsedTime - startClock.current
@@ -42,6 +44,7 @@ export function ScorePopup({ text, position, color = '#F7C948', onComplete }: Sc
     setOpacity(newOpacity)
 
     if (newOpacity <= 0 && onComplete) {
+      completedRef.current = true
       onComplete()
     }
   })

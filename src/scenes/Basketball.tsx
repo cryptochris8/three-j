@@ -42,6 +42,7 @@ function BasketballGame() {
   const {
     shotsRemaining,
     isBallFlying,
+    shotResult,
     registerBackboardHit,
     registerRimHit,
     registerScore,
@@ -87,6 +88,13 @@ function BasketballGame() {
     }
   }, [shotsRemaining, gamePhase, isBallFlying, triggerQuiz])
 
+  // Show "Miss!" popup when a shot misses
+  useEffect(() => {
+    if (shotResult === 'miss') {
+      addPopup('Miss!', [0, 3, -5], '#888888')
+    }
+  }, [shotResult, addPopup])
+
   const handleScore = useCallback(() => {
     const result = registerScore()
     let points = 0
@@ -117,6 +125,7 @@ function BasketballGame() {
         points *= BASKETBALL_CONFIG.streakBonusMultiplier
         text += ` x2 STREAK!`
         audioManager.playVoice('streak')
+        audioManager.play('crowd')
       }
 
       if (hasPowerShot) {

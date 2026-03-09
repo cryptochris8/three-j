@@ -33,6 +33,6 @@ export const useGameStore = create<GameState>((set) => ({
   setLastQuizResult: (correct) => set({ lastQuizResult: correct }),
   setSelectedDifficulty: (d) => set({ selectedDifficulty: d }),
   setGameMode: (mode) => set({ gameMode: mode }),
-  returnToHub: () => set({ currentScene: 'hub', gamePhase: 'menu' }),
+  returnToHub: () => set({ currentScene: 'hub', gamePhase: 'playing' }),
   returnToMenu: () => set({ currentScene: 'menu', gamePhase: 'menu' }),
 }))
