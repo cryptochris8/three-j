@@ -5,6 +5,8 @@ import * as THREE from 'three'
 import { useKeyboard } from '@/hooks/useKeyboard'
 import { HytopiaAvatar } from './HytopiaAvatar'
 import { HUB } from '@/core/constants'
+import { usePlayerStore } from '@/stores/usePlayerStore'
+import { getAvatarSkin } from './GameAvatar'
 
 /** Pure function: compute movement direction from pressed keys */
 export function calculateMoveDirection(keys: Set<string>): THREE.Vector3 {
@@ -57,6 +59,11 @@ export function PlayerController({ onPositionChange }: PlayerControllerProps) {
   const currentFacing = useRef(0)
   const [isMoving, setIsMoving] = useState(false)
   const isFirstFrame = useRef(true)
+  const skinId = usePlayerStore((s) => {
+    const profile = s.profiles.find((p) => p.id === s.activeProfileId)
+    return profile?.skinId
+  })
+  const skinUrl = getAvatarSkin(skinId)
 
   useFrame((_, delta) => {
     if (!bodyRef.current) return
@@ -109,7 +116,7 @@ export function PlayerController({ onPositionChange }: PlayerControllerProps) {
     >
       <CapsuleCollider args={[0.5, 0.3]} position={[0, 0.8, 0]} />
       <group ref={avatarGroupRef}>
-        <HytopiaAvatar isMoving={isMoving} />
+        <HytopiaAvatar skinUrl={skinUrl} isMoving={isMoving} />
       </group>
     </RigidBody>
   )

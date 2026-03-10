@@ -1,8 +1,9 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { usePlayerStore } from '@/stores/usePlayerStore'
 import { useGameStore } from '@/stores/useGameStore'
 import { audioManager } from '@/core/AudioManager'
 import { switchPlayerStores, migrateUnscopedData } from '@/core/playerScoping'
+import { AvatarPicker } from './AvatarPicker'
 
 const PROFILE_COLORS = [
   { bg: 'linear-gradient(135deg, #FF6B6B, #FF8E53)', shadow: 'rgba(255,107,83,0.5)' },
@@ -15,6 +16,7 @@ export function MainMenu() {
   const activeProfileId = usePlayerStore((s) => s.activeProfileId)
   const setActiveProfile = usePlayerStore((s) => s.setActiveProfile)
   const setScene = useGameStore((s) => s.setScene)
+  const [pickerProfileId, setPickerProfileId] = useState<number | null>(null)
 
   useEffect(() => {
     migrateUnscopedData()
@@ -147,6 +149,29 @@ export function MainMenu() {
               <span style={{ fontSize: '2.5rem', filter: isActive ? 'drop-shadow(0 2px 8px rgba(0,0,0,0.3))' : 'none' }}>{profile.avatar}</span>
               <span style={{ fontWeight: 700 }}>{profile.name}</span>
               <span style={{ fontSize: '0.75rem', opacity: 0.85 }}>Age {profile.age}</span>
+              <button
+                aria-label={`Choose avatar for ${profile.name}`}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setPickerProfileId(profile.id)
+                }}
+                style={{
+                  marginTop: '0.4rem',
+                  padding: '0.35rem 0.8rem',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  borderRadius: '10px',
+                  border: '2px solid rgba(255,215,0,0.6)',
+                  background: 'linear-gradient(135deg, rgba(255,215,0,0.3), rgba(255,165,0,0.3))',
+                  color: '#FFFFFF',
+                  cursor: 'pointer',
+                  letterSpacing: '0.5px',
+                  textShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                  boxShadow: '0 2px 8px rgba(255,215,0,0.2)',
+                }}
+              >
+                Choose Avatar
+              </button>
             </button>
           )
         })}
@@ -176,6 +201,13 @@ export function MainMenu() {
       >
         PLAY!
       </button>
+
+      {pickerProfileId !== null && (
+        <AvatarPicker
+          profileId={pickerProfileId}
+          onClose={() => setPickerProfileId(null)}
+        />
+      )}
     </div>
   )
 }

@@ -11,6 +11,7 @@ export interface PlayerProfile {
   name: string
   age: number
   avatar: string
+  skinId: number
   coins: number
   totalXP: number
   createdAt: number

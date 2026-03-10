@@ -20,7 +20,7 @@ describe('store integration', () => {
     // Reset player profiles to clean coin state
     usePlayerStore.setState({
       profiles: [
-        { id: 1, name: 'Player 1', age: 6, avatar: '1', coins: 0, totalXP: 0, createdAt: Date.now() },
+        { id: 1, name: 'Player 1', age: 6, avatar: '1', skinId: 1, coins: 0, totalXP: 0, createdAt: Date.now() },
       ],
       activeProfileId: 1,
     })

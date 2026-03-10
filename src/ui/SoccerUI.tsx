@@ -25,8 +25,10 @@ export function SoccerOverlay() {
   const handleQuizComplete = useCallback((correct: boolean) => {
     if (correct) setKeeperSlowed(true)
     setLastQuizResult(correct)
-    nextKick()
     setGamePhase('playing')
+    // Delay advancing to next kick so the quiz result popup is visible.
+    // Soccer phase stays 'result' during this window, blocking input.
+    setTimeout(() => nextKick(), 1500)
   }, [setKeeperSlowed, setLastQuizResult, nextKick, setGamePhase])
 
   return (

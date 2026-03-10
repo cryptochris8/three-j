@@ -13,6 +13,7 @@ import { Confetti } from '@/components/Confetti'
 import { ScreenShake } from '@/components/ScreenShake'
 import { useGameScene } from '@/hooks/useGameScene'
 import { audioManager } from '@/core/AudioManager'
+import { GameAvatar } from '@/components/GameAvatar'
 
 // Shared state for the UI overlay (read by BasketballUI outside Canvas)
 import { useMemo } from 'react'
@@ -174,6 +175,7 @@ function BasketballGame() {
           onRimHit={registerRimHit}
         />
         <BallAndShooter />
+        <GameAvatar position={[0, 0, 4]} rotationY={0} />
       </PhysicsProvider>
 
       {popups.map((popup) => (

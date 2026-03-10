@@ -14,6 +14,7 @@ import { Confetti } from '@/components/Confetti'
 import { useGameScene } from '@/hooks/useGameScene'
 import { audioManager } from '@/core/AudioManager'
 import { BallTrail } from '@/components/BallTrail'
+import { GameAvatar } from '@/components/GameAvatar'
 
 function GuideLine({ ballPosition }: { ballPosition: [number, number, number] }) {
   const hasGuideLine = useMinigolf((s) => s.hasGuideLine)
@@ -484,6 +485,10 @@ function MinigolfGame() {
         />
         <GolfBall />
         <GuideLine ballPosition={useMinigolf.getState().lastBallPosition} />
+        <GameAvatar
+          position={[holeConfig.teePosition[0] + 0.3, 0, holeConfig.teePosition[2]]}
+          rotationY={Math.PI / 2}
+        />
       </PhysicsProvider>
 
       {popups.map((popup) => (

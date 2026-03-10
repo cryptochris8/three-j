@@ -88,3 +88,19 @@ export const HUB = {
     { game: 'minigolf' as const,   label: 'Mini-Golf',   position: [15, 0, 10] as [number, number, number],  color: '#9C27B0', skinUrl: '/skins/npc-minigolf.png' },
   ],
 } as const
+
+// Avatar options for player selection
+export const AVATAR_OPTIONS = [
+  { id: 1, name: 'Avatar 1', path: '/skins/avatars/1.png' },
+  { id: 2, name: 'Avatar 2', path: '/skins/avatars/100.png' },
+  { id: 3, name: 'Avatar 3', path: '/skins/avatars/250.png' },
+  { id: 4, name: 'Avatar 4', path: '/skins/avatars/500.png' },
+  { id: 5, name: 'Avatar 5', path: '/skins/avatars/750.png' },
+  { id: 6, name: 'Avatar 6', path: '/skins/avatars/1000.png' },
+  { id: 7, name: 'Avatar 7', path: '/skins/avatars/1500.png' },
+  { id: 8, name: 'Avatar 8', path: '/skins/avatars/2000.png' },
+  { id: 9, name: 'Avatar 9', path: '/skins/avatars/2500.png' },
+  { id: 10, name: 'Avatar 10', path: '/skins/avatars/3000.png' },
+] as const
+
+export const DEFAULT_SKIN_ID = 1

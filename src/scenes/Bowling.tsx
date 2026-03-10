@@ -13,6 +13,7 @@ import { ScorePopup } from '@/components/ScorePopup'
 import { Confetti } from '@/components/Confetti'
 import { useGameScene } from '@/hooks/useGameScene'
 import { audioManager } from '@/core/AudioManager'
+import { GameAvatar } from '@/components/GameAvatar'
 
 function BowlingGame() {
   const gamePhase = useGameStore((s) => s.gamePhase)
@@ -137,6 +138,7 @@ function BowlingGame() {
         <Lane hasBumpers={bowlingConfig.hasBumpers} />
         <Pins ref={pinsRef} />
         <BowlingBall onBallStopped={handleBallStopped} />
+        <GameAvatar position={[0, 0, 8]} rotationY={0} />
       </PhysicsProvider>
 
       {popups.map((popup) => (

@@ -17,6 +17,7 @@ import { Confetti } from '@/components/Confetti'
 import { useGameScene } from '@/hooks/useGameScene'
 import { audioManager } from '@/core/AudioManager'
 import { BallTrail } from '@/components/BallTrail'
+import { GameAvatar } from '@/components/GameAvatar'
 
 function SoccerBall() {
   const ballRef = useRef<RapierRigidBody>(null)
@@ -254,9 +255,14 @@ function SoccerGame() {
     useSoccer.getState().registerGoal()
   }, [])
 
+  // Guard: prevent result effect from processing multiple times per phase
+  const resultHandled = useRef(false)
+
   // Handle result phase
   useEffect(() => {
-    if (soccerPhase === 'result') {
+    if (soccerPhase === 'result' && !resultHandled.current) {
+      resultHandled.current = true
+
       let text = ''
       let color = '#F7C948'
 
@@ -294,6 +300,11 @@ function SoccerGame() {
         }
       }, 2500)
     }
+
+    // Reset guard when leaving result phase
+    if (soccerPhase !== 'result') {
+      resultHandled.current = false
+    }
   }, [soccerPhase, lastResult, addScore, simulateOpponent, currentKick, triggerConfetti, addPopup, triggerQuiz, nextKick])
 
   // Game over
@@ -327,6 +338,7 @@ function SoccerGame() {
           isSlowed={keeperSlowed}
         />
         <SoccerBall />
+        <GameAvatar position={[0, 0, 3]} rotationY={0} />
       </PhysicsProvider>
 
       {popups.map((popup) => (

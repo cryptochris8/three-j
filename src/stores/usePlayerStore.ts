@@ -3,9 +3,9 @@ import { persist } from 'zustand/middleware'
 import type { PlayerProfile } from '@/types'
 
 const DEFAULT_PROFILES: PlayerProfile[] = [
-  { id: 1, name: 'Player 1', age: 6, avatar: '🌟', coins: 0, totalXP: 0, createdAt: Date.now() },
-  { id: 2, name: 'Player 2', age: 8, avatar: '⭐', coins: 0, totalXP: 0, createdAt: Date.now() },
-  { id: 3, name: 'Player 3', age: 8, avatar: '💫', coins: 0, totalXP: 0, createdAt: Date.now() },
+  { id: 1, name: 'Player 1', age: 6, avatar: '🌟', skinId: 1, coins: 0, totalXP: 0, createdAt: Date.now() },
+  { id: 2, name: 'Player 2', age: 8, avatar: '⭐', skinId: 1, coins: 0, totalXP: 0, createdAt: Date.now() },
+  { id: 3, name: 'Player 3', age: 8, avatar: '💫', skinId: 1, coins: 0, totalXP: 0, createdAt: Date.now() },
 ]
 
 interface PlayerState {
@@ -72,6 +72,22 @@ export const usePlayerStore = create<PlayerState>()(
         }))
       },
     }),
-    { name: 'three-j-players' }
+    {
+      name: 'three-j-players',
+      merge: (persisted, current) => {
+        const state = { ...current, ...(persisted as Partial<PlayerState>) }
+        // Backwards compat: migrate old `gender` field to `skinId`
+        if (state.profiles) {
+          state.profiles = state.profiles.map((p) => {
+            const legacy = p as PlayerProfile & { gender?: string }
+            if (legacy.skinId != null) return p
+            const skinId = legacy.gender === 'female' ? 2 : 1
+            const { gender: _, ...rest } = legacy
+            return { ...rest, skinId } as PlayerProfile
+          })
+        }
+        return state
+      },
+    }
   )
 )
