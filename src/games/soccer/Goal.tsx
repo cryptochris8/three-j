@@ -1,4 +1,5 @@
-import { RigidBody, CuboidCollider } from '@react-three/rapier'
+import { useCallback } from 'react'
+import { RigidBody, CuboidCollider, type IntersectionEnterPayload } from '@react-three/rapier'
 import { SOCCER_CONFIG } from './config'
 
 interface GoalProps {
@@ -8,6 +9,13 @@ interface GoalProps {
 export function Goal({ onGoalScored }: GoalProps) {
   const { goalWidth, goalHeight, goalDepth, goalPosition } = SOCCER_CONFIG
   const postRadius = 0.06
+
+  const handleIntersection = useCallback((payload: IntersectionEnterPayload) => {
+    const otherName = payload.other.rigidBodyObject?.name
+    if (otherName === 'soccerball') {
+      onGoalScored()
+    }
+  }, [onGoalScored])
 
   return (
     <group position={goalPosition}>
@@ -48,7 +56,7 @@ export function Goal({ onGoalScored }: GoalProps) {
       </mesh>
 
       {/* Goal sensor (detect ball entering) */}
-      <RigidBody type="fixed" sensor onIntersectionEnter={onGoalScored}>
+      <RigidBody type="fixed" sensor onIntersectionEnter={handleIntersection}>
         <CuboidCollider
           args={[goalWidth / 2 - 0.1, goalHeight / 2 - 0.1, 0.1]}
           position={[0, goalHeight / 2, -0.5]}

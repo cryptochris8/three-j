@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef, useState } from 'react'
+import { useEffect, useCallback, useRef, useState, useMemo } from 'react'
 import { Skybox } from '@/components/Skybox'
 import { useGameStore } from '@/stores/useGameStore'
 import { useScoreStore } from '@/stores/useScoreStore'
@@ -14,9 +14,9 @@ import { ScreenShake } from '@/components/ScreenShake'
 import { useGameScene } from '@/hooks/useGameScene'
 import { audioManager } from '@/core/AudioManager'
 import { GameAvatar } from '@/components/GameAvatar'
+import type { AnimationState } from '@/components/HytopiaAvatar'
 
 // Shared state for the UI overlay (read by BasketballUI outside Canvas)
-import { useMemo } from 'react'
 import { create } from 'zustand'
 
 interface BasketballUIState {
@@ -43,6 +43,7 @@ function BasketballGame() {
   const {
     shotsRemaining,
     isBallFlying,
+    isPowerCharging,
     shotResult,
     registerBackboardHit,
     registerRimHit,
@@ -52,6 +53,37 @@ function BasketballGame() {
   } = useBasketball()
 
   const [shakeActive, setShakeActive] = useState(false)
+  const [reactionAnim, setReactionAnim] = useState<AnimationState | null>(null)
+  const prevFlyingRef = useRef(false)
+
+  // Compute avatar animation from game state
+  const avatarAnimation: AnimationState = useMemo(() => {
+    if (reactionAnim) return reactionAnim
+    if (isPowerCharging) return 'charge'
+    return 'idle'
+  }, [reactionAnim, isPowerCharging])
+
+  // Detect transition from charging to flying (throw moment)
+  useEffect(() => {
+    if (isBallFlying && !prevFlyingRef.current) {
+      setReactionAnim('throw')
+      const timer = setTimeout(() => setReactionAnim(null), 800)
+      return () => clearTimeout(timer)
+    }
+    prevFlyingRef.current = isBallFlying
+  }, [isBallFlying])
+
+  // Celebrate/disappointed on shot result
+  useEffect(() => {
+    if (!shotResult) return
+    if (shotResult === 'miss') {
+      setReactionAnim('disappointed')
+    } else {
+      setReactionAnim('celebrate')
+    }
+    const timer = setTimeout(() => setReactionAnim(null), 2000)
+    return () => clearTimeout(timer)
+  }, [shotResult])
 
   const { popups, showConfetti, addPopup, removePopup, triggerConfetti, triggerQuiz, endGame } = useGameScene('basketball', () => {
     resetGame(config.totalShots, config.roundTimeSeconds)
@@ -175,7 +207,7 @@ function BasketballGame() {
           onRimHit={registerRimHit}
         />
         <BallAndShooter />
-        <GameAvatar position={[0, 0, 4]} rotationY={0} />
+        <GameAvatar position={[0, 0, 4]} rotationY={0} animation={avatarAnimation} />
       </PhysicsProvider>
 
       {popups.map((popup) => (

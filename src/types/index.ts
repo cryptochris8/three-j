@@ -1,4 +1,4 @@
-export type Scene = 'menu' | 'hub' | 'basketball' | 'soccer' | 'bowling' | 'minigolf'
+export type Scene = 'menu' | 'hub' | 'basketball' | 'soccer' | 'bowling' | 'minigolf' | 'archery'
 
 export type GamePhase = 'menu' | 'playing' | 'paused' | 'quiz' | 'gameover'
 

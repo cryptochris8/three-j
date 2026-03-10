@@ -50,6 +50,8 @@ describe('useSoccer', () => {
 
   describe('results', () => {
     it('registers goal and increments player score', () => {
+      useSoccer.getState().startCharging()
+      useSoccer.getState().kick()
       useSoccer.getState().registerGoal()
       expect(useSoccer.getState().playerGoals).toBe(1)
       expect(useSoccer.getState().phase).toBe('result')
@@ -57,6 +59,8 @@ describe('useSoccer', () => {
     })
 
     it('registers saved', () => {
+      useSoccer.getState().startCharging()
+      useSoccer.getState().kick()
       useSoccer.getState().registerSaved()
       expect(useSoccer.getState().phase).toBe('result')
       expect(useSoccer.getState().lastResult).toBe('saved')
@@ -64,9 +68,25 @@ describe('useSoccer', () => {
     })
 
     it('registers miss', () => {
+      useSoccer.getState().startCharging()
+      useSoccer.getState().kick()
       useSoccer.getState().registerMiss()
       expect(useSoccer.getState().phase).toBe('result')
       expect(useSoccer.getState().lastResult).toBe('miss')
+    })
+
+    it('ignores registerGoal when not in flying phase', () => {
+      useSoccer.getState().registerGoal()
+      expect(useSoccer.getState().playerGoals).toBe(0)
+      expect(useSoccer.getState().phase).toBe('aiming')
+    })
+
+    it('ignores duplicate registerGoal calls', () => {
+      useSoccer.getState().startCharging()
+      useSoccer.getState().kick()
+      useSoccer.getState().registerGoal()
+      useSoccer.getState().registerGoal()
+      expect(useSoccer.getState().playerGoals).toBe(1)
     })
   })
 

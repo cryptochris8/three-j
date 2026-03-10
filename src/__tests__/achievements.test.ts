@@ -36,9 +36,9 @@ describe('achievements', () => {
   })
 
   describe('all access', () => {
-    it('unlocks when all 4 games unlocked', () => {
+    it('unlocks when all 5 games unlocked', () => {
       const results = checkAchievements(makeCtx({
-        unlockedGames: ['basketball', 'soccer', 'bowling', 'minigolf'],
+        unlockedGames: ['basketball', 'soccer', 'bowling', 'minigolf', 'archery'],
       }))
       expect(results.some((a) => a.id === 'all-unlocked')).toBe(true)
     })

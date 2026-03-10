@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef, useMemo } from 'react'
+import { useEffect, useCallback, useRef, useMemo, useState } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { Skybox } from '@/components/Skybox'
@@ -18,6 +18,7 @@ import { useGameScene } from '@/hooks/useGameScene'
 import { audioManager } from '@/core/AudioManager'
 import { BallTrail } from '@/components/BallTrail'
 import { GameAvatar } from '@/components/GameAvatar'
+import type { AnimationState } from '@/components/HytopiaAvatar'
 
 function SoccerBall() {
   const ballRef = useRef<RapierRigidBody>(null)
@@ -250,6 +251,38 @@ function SoccerGame() {
 
   const { popups, showConfetti, addPopup, removePopup, triggerConfetti, triggerQuiz, endGame } = useGameScene('soccer', () => resetGame(soccerConfig.totalKicks))
 
+  const [reactionAnim, setReactionAnim] = useState<AnimationState | null>(null)
+  const prevPhaseRef = useRef(soccerPhase)
+
+  // Compute avatar animation from soccer phase
+  const avatarAnimation: AnimationState = useMemo(() => {
+    if (reactionAnim) return reactionAnim
+    if (soccerPhase === 'charging') return 'charge'
+    return 'idle'
+  }, [reactionAnim, soccerPhase])
+
+  // Detect kick moment (transition from charging to flying)
+  useEffect(() => {
+    if (soccerPhase === 'flying' && prevPhaseRef.current === 'charging') {
+      setReactionAnim('kick')
+      const timer = setTimeout(() => setReactionAnim(null), 800)
+      return () => clearTimeout(timer)
+    }
+    prevPhaseRef.current = soccerPhase
+  }, [soccerPhase])
+
+  // Celebrate/disappointed on result
+  useEffect(() => {
+    if (soccerPhase !== 'result' || !lastResult) return
+    if (lastResult === 'goal') {
+      setReactionAnim('celebrate')
+    } else {
+      setReactionAnim('disappointed')
+    }
+    const timer = setTimeout(() => setReactionAnim(null), 2000)
+    return () => clearTimeout(timer)
+  }, [soccerPhase, lastResult])
+
   // Handle goal scored
   const handleGoalScored = useCallback(() => {
     useSoccer.getState().registerGoal()
@@ -338,7 +371,7 @@ function SoccerGame() {
           isSlowed={keeperSlowed}
         />
         <SoccerBall />
-        <GameAvatar position={[0, 0, 3]} rotationY={0} />
+        <GameAvatar position={[0, 0, 3]} rotationY={0} animation={avatarAnimation} />
       </PhysicsProvider>
 
       {popups.map((popup) => (

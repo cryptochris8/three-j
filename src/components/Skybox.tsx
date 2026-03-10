@@ -51,6 +51,12 @@ export const SKYBOX_CONFIG: Record<string, {
     backgroundBlurriness: 0,
     backgroundIntensity: 1,
   },
+  archery: {
+    file: 'archery.jpg',
+    preset: 'forest',
+    backgroundBlurriness: 0,
+    backgroundIntensity: 1,
+  },
 }
 
 interface SkyboxProps {

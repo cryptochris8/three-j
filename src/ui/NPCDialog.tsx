@@ -22,6 +22,11 @@ const GAME_INFO: Record<string, { description: string; controls: string; emoji: 
     controls: 'Click & hold to charge, release to putt',
     emoji: '⛳',
   },
+  archery: {
+    description: 'Aim your crosshair and shoot moving targets! Hit high-value targets for big points in 90 seconds.',
+    controls: 'Move mouse to aim, click to shoot',
+    emoji: '🏹',
+  },
 }
 
 interface NPCDialogProps {

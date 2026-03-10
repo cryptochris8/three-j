@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef, useMemo } from 'react'
+import { useEffect, useCallback, useRef, useMemo, useState } from 'react'
 import { Text } from '@react-three/drei'
 import { Skybox } from '@/components/Skybox'
 import { useGameStore } from '@/stores/useGameStore'
@@ -14,6 +14,7 @@ import { Confetti } from '@/components/Confetti'
 import { useGameScene } from '@/hooks/useGameScene'
 import { audioManager } from '@/core/AudioManager'
 import { GameAvatar } from '@/components/GameAvatar'
+import type { AnimationState } from '@/components/HytopiaAvatar'
 
 function BowlingGame() {
   const gamePhase = useGameStore((s) => s.gamePhase)
@@ -35,6 +36,42 @@ function BowlingGame() {
 
   const { popups, showConfetti, addPopup, removePopup, triggerConfetti, triggerQuiz, endGame } = useGameScene('bowling', () => resetGame(bowlingConfig.totalFrames))
   const pinsRef = useRef<PinsHandle>(null)
+
+  const [reactionAnim, setReactionAnim] = useState<AnimationState | null>(null)
+  const prevBowlingPhaseRef = useRef(bowlingPhase)
+
+  // Compute avatar animation from bowling phase
+  const avatarAnimation: AnimationState = useMemo(() => {
+    if (reactionAnim) return reactionAnim
+    if (bowlingPhase === 'charging' || bowlingPhase === 'spinning') return 'charge'
+    return 'idle'
+  }, [reactionAnim, bowlingPhase])
+
+  // Detect swing moment (transition to rolling)
+  useEffect(() => {
+    if (bowlingPhase === 'rolling' && (prevBowlingPhaseRef.current === 'charging' || prevBowlingPhaseRef.current === 'spinning')) {
+      setReactionAnim('swing')
+      const timer = setTimeout(() => setReactionAnim(null), 800)
+      return () => clearTimeout(timer)
+    }
+    prevBowlingPhaseRef.current = bowlingPhase
+  }, [bowlingPhase])
+
+  // Celebrate/disappointed on frame result
+  useEffect(() => {
+    if (bowlingPhase !== 'frameover') return
+    if (isStrike || isSpare) {
+      setReactionAnim('celebrate')
+    } else {
+      // Check if it was a gutter (0 pins)
+      const lastScore = frameScores[frameScores.length - 1] ?? 0
+      if (lastScore === 0) {
+        setReactionAnim('disappointed')
+      }
+    }
+    const timer = setTimeout(() => setReactionAnim(null), 2000)
+    return () => clearTimeout(timer)
+  }, [bowlingPhase, isStrike, isSpare, frameScores])
 
   // Guard: prevent frameover effect from processing multiple times per frame
   const frameOverHandled = useRef(false)
@@ -138,7 +175,7 @@ function BowlingGame() {
         <Lane hasBumpers={bowlingConfig.hasBumpers} />
         <Pins ref={pinsRef} />
         <BowlingBall onBallStopped={handleBallStopped} />
-        <GameAvatar position={[0, 0, 8]} rotationY={0} />
+        <GameAvatar position={[0, 0, 8]} rotationY={0} animation={avatarAnimation} />
       </PhysicsProvider>
 
       {popups.map((popup) => (

@@ -20,6 +20,8 @@ type SoundName =
   | 'star'
   | 'unlock'
   | 'confetti'
+  | 'arrowShoot'
+  | 'targetHit'
 
 type VoiceName =
   | 'welcome'
@@ -34,8 +36,9 @@ type VoiceName =
   | 'quizCorrect'
   | 'quizWrong'
   | 'streak'
+  | 'bullseye'
 
-type MusicName = 'menu' | 'hub' | 'basketball' | 'soccer' | 'bowling' | 'minigolf'
+type MusicName = 'menu' | 'hub' | 'basketball' | 'soccer' | 'bowling' | 'minigolf' | 'archery'
 
 class AudioManager {
   private sounds: Map<string, Howl> = new Map()

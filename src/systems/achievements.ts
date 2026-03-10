@@ -40,12 +40,12 @@ export const ACHIEVEMENT_CATALOG: AchievementDef[] = [
 
   // Cross-game: unlock & play
   {
-    id: 'all-unlocked', name: 'All Access', description: 'Unlock all four games', icon: 'unlock',
-    check: (ctx) => ['basketball', 'soccer', 'bowling', 'minigolf'].every((g) => ctx.unlockedGames.includes(g)),
+    id: 'all-unlocked', name: 'All Access', description: 'Unlock all five games', icon: 'unlock',
+    check: (ctx) => ['basketball', 'soccer', 'bowling', 'minigolf', 'archery'].every((g) => ctx.unlockedGames.includes(g)),
   },
   {
-    id: 'all-played', name: 'Well Rounded', description: 'Play all four games', icon: 'games',
-    check: (ctx) => ['basketball', 'soccer', 'bowling', 'minigolf'].every(
+    id: 'all-played', name: 'Well Rounded', description: 'Play all five games', icon: 'games',
+    check: (ctx) => ['basketball', 'soccer', 'bowling', 'minigolf', 'archery'].every(
       (g) => ctx.history.some((h) => h.game === g),
     ),
   },
@@ -82,6 +82,10 @@ export const ACHIEVEMENT_CATALOG: AchievementDef[] = [
   {
     id: 'air-ball', name: 'Air Ball', description: 'Finish basketball with 0 points', icon: 'whoops',
     check: (ctx) => ctx.history.some((h) => h.game === 'basketball' && h.score === 0),
+  },
+  {
+    id: 'archery-3star', name: 'Sharpshooter', description: 'Earn 3 stars in archery', icon: 'archery',
+    check: (ctx) => ctx.history.some((h) => h.game === 'archery' && h.stars >= 3),
   },
 
   // Education achievements

@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef, useMemo } from 'react'
+import { useEffect, useCallback, useRef, useMemo, useState } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { Skybox } from '@/components/Skybox'
@@ -15,6 +15,7 @@ import { useGameScene } from '@/hooks/useGameScene'
 import { audioManager } from '@/core/AudioManager'
 import { BallTrail } from '@/components/BallTrail'
 import { GameAvatar } from '@/components/GameAvatar'
+import type { AnimationState } from '@/components/HytopiaAvatar'
 
 function GuideLine({ ballPosition }: { ballPosition: [number, number, number] }) {
   const hasGuideLine = useMinigolf((s) => s.hasGuideLine)
@@ -386,6 +387,36 @@ function MinigolfGame() {
   const { popups, showConfetti, addPopup, removePopup, triggerConfetti, triggerQuiz, endGame } = useGameScene('minigolf', () => resetGame(golfConfig.maxStrokes))
 
   const holeConfig = COURSES[currentHole]
+  const isDragging = useMinigolf((s) => s.isDragging)
+
+  const [reactionAnim, setReactionAnim] = useState<AnimationState | null>(null)
+  const prevGolfPhaseRef = useRef(golfPhase)
+
+  // Compute avatar animation from minigolf phase
+  const avatarAnimation: AnimationState = useMemo(() => {
+    if (reactionAnim) return reactionAnim
+    if (isDragging) return 'charge'
+    return 'idle'
+  }, [reactionAnim, isDragging])
+
+  // Detect swing moment (transition to rolling)
+  useEffect(() => {
+    if (golfPhase === 'rolling' && prevGolfPhaseRef.current === 'aiming') {
+      setReactionAnim('swing')
+      const timer = setTimeout(() => setReactionAnim(null), 800)
+      return () => clearTimeout(timer)
+    }
+    prevGolfPhaseRef.current = golfPhase
+  }, [golfPhase])
+
+  // Celebrate on holed
+  useEffect(() => {
+    if (golfPhase === 'holed') {
+      setReactionAnim('celebrate')
+      const timer = setTimeout(() => setReactionAnim(null), 2000)
+      return () => clearTimeout(timer)
+    }
+  }, [golfPhase])
 
   // Handle ball in hole
   const handleBallInHole = useCallback(() => {
@@ -488,6 +519,7 @@ function MinigolfGame() {
         <GameAvatar
           position={[holeConfig.teePosition[0] + 0.3, 0, holeConfig.teePosition[2]]}
           rotationY={Math.PI / 2}
+          animation={avatarAnimation}
         />
       </PhysicsProvider>
 

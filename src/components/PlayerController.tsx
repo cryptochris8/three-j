@@ -3,7 +3,8 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { RigidBody, CapsuleCollider, type RapierRigidBody } from '@react-three/rapier'
 import * as THREE from 'three'
 import { useKeyboard } from '@/hooks/useKeyboard'
-import { HytopiaAvatar } from './HytopiaAvatar'
+import { useMouseLook } from '@/hooks/useMouseLook'
+import { HytopiaAvatar, type AnimationState } from './HytopiaAvatar'
 import { HUB } from '@/core/constants'
 import { usePlayerStore } from '@/stores/usePlayerStore'
 import { getAvatarSkin } from './GameAvatar'
@@ -17,6 +18,11 @@ export function calculateMoveDirection(keys: Set<string>): THREE.Vector3 {
   if (keys.has('KeyD') || keys.has('ArrowRight')) dir.x += 1
   if (dir.lengthSq() > 0) dir.normalize()
   return dir
+}
+
+/** Pure function: check if sprint key is held */
+export function isSprinting(keys: Set<string>): boolean {
+  return keys.has('ShiftLeft') || keys.has('ShiftRight')
 }
 
 /** Pure function: clamp position within world bounds */
@@ -47,6 +53,18 @@ export function lerpAngle(a: number, b: number, t: number): number {
   return a + diff * t
 }
 
+/** Pure function: rotate movement vector by camera yaw so WASD is camera-relative */
+export function rotateMovementByCamera(moveDir: THREE.Vector3, cameraYaw: number): THREE.Vector3 {
+  if (moveDir.lengthSq() === 0) return moveDir.clone()
+  const cos = Math.cos(cameraYaw)
+  const sin = Math.sin(cameraYaw)
+  return new THREE.Vector3(
+    moveDir.x * cos - moveDir.z * sin,
+    0,
+    moveDir.x * sin + moveDir.z * cos,
+  )
+}
+
 interface PlayerControllerProps {
   onPositionChange?: (pos: THREE.Vector3) => void
 }
@@ -57,8 +75,10 @@ export function PlayerController({ onPositionChange }: PlayerControllerProps) {
   const keys = useKeyboard()
   const { camera } = useThree()
   const currentFacing = useRef(0)
-  const [isMoving, setIsMoving] = useState(false)
+  const [movementState, setMovementState] = useState<'idle' | 'walk' | 'run'>('idle')
+  const animation: AnimationState = movementState
   const isFirstFrame = useRef(true)
+  const { yaw, pitch } = useMouseLook()
   const skinId = usePlayerStore((s) => {
     const profile = s.profiles.find((p) => p.id === s.activeProfileId)
     return profile?.skinId
@@ -68,17 +88,21 @@ export function PlayerController({ onPositionChange }: PlayerControllerProps) {
   useFrame((_, delta) => {
     if (!bodyRef.current) return
 
-    const moveDir = calculateMoveDirection(keys)
+    const rawDir = calculateMoveDirection(keys)
+    const moveDir = rotateMovementByCamera(rawDir, yaw.current)
     const moving = moveDir.lengthSq() > 0
+    const sprinting = moving && isSprinting(keys)
 
-    // Only trigger re-render when moving state changes
-    if (moving !== isMoving) setIsMoving(moving)
+    // Only trigger re-render when movement state changes
+    const newState = moving ? (sprinting ? 'run' : 'walk') : 'idle'
+    if (newState !== movementState) setMovementState(newState as 'idle' | 'walk' | 'run')
 
     const currentPos = bodyRef.current.translation()
     const pos = new THREE.Vector3(currentPos.x, currentPos.y, currentPos.z)
 
     if (moving) {
-      const velocity = moveDir.multiplyScalar(HUB.playerSpeed * delta)
+      const speed = sprinting ? HUB.playerSpeed * HUB.sprintMultiplier : HUB.playerSpeed
+      const velocity = moveDir.clone().multiplyScalar(speed * delta)
       const newPos = new THREE.Vector3(pos.x + velocity.x, pos.y, pos.z + velocity.z)
       const clamped = clampToWorld(newPos, HUB.worldSize / 2 - 1)
       bodyRef.current.setNextKinematicTranslation({ x: clamped.x, y: clamped.y, z: clamped.z })
@@ -94,13 +118,20 @@ export function PlayerController({ onPositionChange }: PlayerControllerProps) {
       pos.copy(clamped)
     }
 
-    // Camera follow - snap on first frame, lerp after
-    const camTarget = calculateCameraPosition(pos, HUB.cameraOffset)
+    // Camera positioned by mouse yaw/pitch (not player facing)
+    const d = HUB.cameraDistance
+    const p = pitch.current
+    const y = yaw.current
+    const camX = pos.x + d * Math.sin(y) * Math.cos(p)
+    const camY = pos.y + d * Math.sin(p)
+    const camZ = pos.z + d * Math.cos(y) * Math.cos(p)
+    const camTarget = new THREE.Vector3(camX, camY, camZ)
+
     if (isFirstFrame.current) {
       camera.position.copy(camTarget)
       isFirstFrame.current = false
     } else {
-      camera.position.lerp(camTarget, 0.05)
+      camera.position.lerp(camTarget, 0.1)
     }
     camera.lookAt(pos.x, pos.y + 1, pos.z)
 
@@ -111,12 +142,12 @@ export function PlayerController({ onPositionChange }: PlayerControllerProps) {
     <RigidBody
       ref={bodyRef}
       type="kinematicPosition"
-      position={[0, 1, 0]}
+      position={[0, 0, 0]}
       colliders={false}
     >
       <CapsuleCollider args={[0.5, 0.3]} position={[0, 0.8, 0]} />
       <group ref={avatarGroupRef}>
-        <HytopiaAvatar skinUrl={skinUrl} isMoving={isMoving} />
+        <HytopiaAvatar key={skinUrl} skinUrl={skinUrl} animation={animation} />
       </group>
     </RigidBody>
   )

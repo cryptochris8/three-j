@@ -53,18 +53,24 @@ export const useSoccer = create<SoccerState>((set, get) => ({
     return { power, aimX, aimY }
   },
 
-  registerGoal: () =>
+  registerGoal: () => {
+    if (get().phase !== 'flying') return
     set((s) => ({
       phase: 'result',
       lastResult: 'goal',
       playerGoals: s.playerGoals + 1,
-    })),
+    }))
+  },
 
-  registerSaved: () =>
-    set({ phase: 'result', lastResult: 'saved' }),
+  registerSaved: () => {
+    if (get().phase !== 'flying') return
+    set({ phase: 'result', lastResult: 'saved' })
+  },
 
-  registerMiss: () =>
-    set({ phase: 'result', lastResult: 'miss' }),
+  registerMiss: () => {
+    if (get().phase !== 'flying') return
+    set({ phase: 'result', lastResult: 'miss' })
+  },
 
   simulateOpponent: () => {
     // Opponent scores ~60% of the time

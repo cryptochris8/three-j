@@ -38,7 +38,7 @@ export function NPC({ label, position, color, skinUrl, isNearby }: NPCProps) {
   return (
     <RigidBody type="fixed" position={position} colliders={false}>
       <group ref={groupRef}>
-        <HytopiaAvatar skinUrl={skinUrl} scale={1.2} />
+        <HytopiaAvatar skinUrl={skinUrl} scale={1.2} animation={isNearby ? 'interact' : 'idle'} />
 
         {/* Floating label - uses drei Text (native R3F, no DOM) */}
         <Billboard position={[0, 2.6, 0]}>

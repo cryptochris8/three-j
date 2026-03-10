@@ -12,12 +12,14 @@ const Basketball = lazy(() => import('@/scenes/Basketball').then((m) => ({ defau
 const Soccer = lazy(() => import('@/scenes/Soccer').then((m) => ({ default: m.Soccer })))
 const Bowling = lazy(() => import('@/scenes/Bowling').then((m) => ({ default: m.Bowling })))
 const MiniGolf = lazy(() => import('@/scenes/MiniGolf').then((m) => ({ default: m.MiniGolf })))
+const Archery = lazy(() => import('@/scenes/Archery').then((m) => ({ default: m.Archery })))
 
 // Overlay imports are small DOM components - no need to lazy-load
 import { BasketballOverlay } from '@/ui/BasketballUI'
 import { SoccerOverlay } from '@/ui/SoccerUI'
 import { BowlingOverlay } from '@/ui/BowlingUI'
 import { MinigolfOverlay } from '@/ui/MinigolfUI'
+import { ArcheryOverlay } from '@/ui/ArcheryUI'
 import { HubOverlay } from '@/ui/HubOverlay'
 
 // Wrap a scene component with a Canvas-safe ErrorBoundary (renders null on error, not DOM)
@@ -37,4 +39,5 @@ export const GAME_REGISTRY: Partial<Record<Scene, GameEntry>> = {
   soccer: { scene: withErrorBoundary(Soccer, 'Soccer'), overlay: SoccerOverlay },
   bowling: { scene: withErrorBoundary(Bowling, 'Bowling'), overlay: BowlingOverlay },
   minigolf: { scene: withErrorBoundary(MiniGolf, 'Minigolf'), overlay: MinigolfOverlay },
+  archery: { scene: withErrorBoundary(Archery, 'Archery'), overlay: ArcheryOverlay },
 }

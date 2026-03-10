@@ -6,9 +6,36 @@ import { SkeletonUtils } from 'three-stdlib'
 const MODEL_PATH = '/models/player.gltf'
 const DEFAULT_SKIN = '/skins/player-default.png'
 
+export type AnimationState =
+  | 'idle' | 'walk' | 'run' | 'charge' | 'throw'
+  | 'kick' | 'swing' | 'celebrate' | 'disappointed'
+  | 'jump' | 'sit' | 'interact'
+
+export const ANIMATION_MAP: Record<AnimationState, {
+  upper: string; lower: string; loop: boolean; fullBody: boolean
+}> = {
+  idle: { upper: 'idle-upper', lower: 'idle-lower', loop: true, fullBody: false },
+  walk: { upper: 'walk-upper', lower: 'walk-lower', loop: true, fullBody: false },
+  run: { upper: 'run-upper', lower: 'run-lower', loop: true, fullBody: false },
+  charge: { upper: 'combat-idle', lower: 'combat-idle', loop: true, fullBody: true },
+  throw: { upper: 'bow-draw-shoot', lower: 'bow-draw-shoot', loop: false, fullBody: true },
+  kick: { upper: 'sword-attack-1', lower: 'sword-attack-1', loop: false, fullBody: true },
+  swing: { upper: 'sword-attack-upper', lower: 'sword-attack-upper', loop: false, fullBody: true },
+  celebrate: { upper: 'emote-griddy', lower: 'emote-griddy', loop: false, fullBody: true },
+  disappointed: { upper: 'emote-annoyed', lower: 'emote-annoyed', loop: false, fullBody: true },
+  jump: { upper: 'jump-pre', lower: 'jump-pre', loop: false, fullBody: true },
+  sit: { upper: 'sit-chair', lower: 'sit-chair', loop: true, fullBody: true },
+  interact: { upper: 'simple-interact', lower: 'simple-interact', loop: false, fullBody: true },
+}
+
+/** Get animation config for a given state, with fallback to idle */
+export function getAnimationConfig(state: AnimationState) {
+  return ANIMATION_MAP[state] ?? ANIMATION_MAP.idle
+}
+
 interface HytopiaAvatarProps {
   skinUrl?: string
-  isMoving?: boolean
+  animation?: AnimationState
   scale?: number
 }
 
@@ -46,21 +73,25 @@ export function applyTextureToModel(model: THREE.Object3D, texture: THREE.Textur
  */
 export function HytopiaAvatar({
   skinUrl = DEFAULT_SKIN,
-  isMoving = false,
+  animation = 'idle',
   scale = 1,
 }: HytopiaAvatarProps) {
   const groupRef = useRef<THREE.Group>(null)
   const { scene, animations } = useGLTF(MODEL_PATH)
-  const prevMovingRef = useRef(isMoving)
+  const prevAnimRef = useRef<AnimationState>(animation)
 
-  // Clone scene per instance so each avatar can have its own skin texture
+  // Clone scene per instance with unique materials so skins don't conflict
   const clone = useMemo(() => {
     const cloned = SkeletonUtils.clone(scene)
-    // Enable shadows on all meshes
     cloned.traverse((node) => {
       if ((node as THREE.Mesh).isMesh) {
-        (node as THREE.Mesh).castShadow = true
-        ;(node as THREE.Mesh).receiveShadow = true
+        const mesh = node as THREE.Mesh
+        mesh.castShadow = true
+        mesh.receiveShadow = true
+        // Clone material so each instance can have its own texture
+        if (mesh.material) {
+          mesh.material = (mesh.material as THREE.Material).clone()
+        }
       }
     })
     return cloned
@@ -79,29 +110,54 @@ export function HytopiaAvatar({
 
   // Start idle animation on mount
   useEffect(() => {
-    actions['idle-upper']?.reset().play()
-    actions['idle-lower']?.reset().play()
+    const config = getAnimationConfig('idle')
+    const upper = actions[config.upper]
+    const lower = actions[config.lower]
+    upper?.reset().play()
+    if (!config.fullBody) lower?.reset().play()
   }, [actions])
 
-  // Transition between idle and walk animations
+  // Transition between animations
   useEffect(() => {
-    if (isMoving === prevMovingRef.current) return
-    prevMovingRef.current = isMoving
+    if (animation === prevAnimRef.current) return
+    prevAnimRef.current = animation
 
     const fadeDuration = 0.2
+    const config = getAnimationConfig(animation)
 
-    if (isMoving) {
-      actions['idle-upper']?.fadeOut(fadeDuration)
-      actions['idle-lower']?.fadeOut(fadeDuration)
-      actions['walk-upper']?.reset().fadeIn(fadeDuration).play()
-      actions['walk-lower']?.reset().fadeIn(fadeDuration).play()
-    } else {
-      actions['walk-upper']?.fadeOut(fadeDuration)
-      actions['walk-lower']?.fadeOut(fadeDuration)
-      actions['idle-upper']?.reset().fadeIn(fadeDuration).play()
-      actions['idle-lower']?.reset().fadeIn(fadeDuration).play()
+    // Fade out all currently playing actions
+    Object.values(actions).forEach((action) => {
+      if (action && action.isRunning()) {
+        action.fadeOut(fadeDuration)
+      }
+    })
+
+    // Fade in new animations
+    const upper = actions[config.upper]
+    const lower = actions[config.lower]
+
+    if (upper) {
+      upper.reset()
+      if (!config.loop) {
+        upper.setLoop(THREE.LoopOnce, 1)
+        upper.clampWhenFinished = true
+      } else {
+        upper.setLoop(THREE.LoopRepeat, Infinity)
+      }
+      upper.fadeIn(fadeDuration).play()
     }
-  }, [isMoving, actions])
+
+    if (!config.fullBody && lower && lower !== upper) {
+      lower.reset()
+      if (!config.loop) {
+        lower.setLoop(THREE.LoopOnce, 1)
+        lower.clampWhenFinished = true
+      } else {
+        lower.setLoop(THREE.LoopRepeat, Infinity)
+      }
+      lower.fadeIn(fadeDuration).play()
+    }
+  }, [animation, actions])
 
   return (
     <group ref={groupRef} scale={scale} dispose={null}>

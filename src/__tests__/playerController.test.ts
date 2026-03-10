@@ -2,9 +2,11 @@ import { describe, it, expect } from 'vitest'
 import * as THREE from 'three'
 import {
   calculateMoveDirection,
+  isSprinting,
   clampToWorld,
   calculateCameraPosition,
   lerpAngle,
+  rotateMovementByCamera,
 } from '@/components/PlayerController'
 
 describe('calculateMoveDirection', () => {
@@ -75,6 +77,28 @@ describe('calculateMoveDirection', () => {
   it('supports ArrowRight', () => {
     const dir = calculateMoveDirection(new Set(['ArrowRight']))
     expect(dir.x).toBeGreaterThan(0)
+  })
+})
+
+describe('isSprinting', () => {
+  it('returns false when no keys pressed', () => {
+    expect(isSprinting(new Set())).toBe(false)
+  })
+
+  it('returns true when ShiftLeft is pressed', () => {
+    expect(isSprinting(new Set(['ShiftLeft']))).toBe(true)
+  })
+
+  it('returns true when ShiftRight is pressed', () => {
+    expect(isSprinting(new Set(['ShiftRight']))).toBe(true)
+  })
+
+  it('returns false when only movement keys are pressed', () => {
+    expect(isSprinting(new Set(['KeyW', 'KeyA']))).toBe(false)
+  })
+
+  it('returns true when Shift is pressed alongside movement keys', () => {
+    expect(isSprinting(new Set(['KeyW', 'ShiftLeft']))).toBe(true)
   })
 })
 
@@ -174,5 +198,42 @@ describe('lerpAngle', () => {
   it('handles wrapping around -PI boundary', () => {
     const result = lerpAngle(-Math.PI * 0.9, Math.PI * 0.9, 0.5)
     expect(Math.abs(result)).toBeGreaterThan(Math.PI * 0.8)
+  })
+})
+
+describe('rotateMovementByCamera', () => {
+  it('yaw=0 leaves movement unchanged (W still goes -Z)', () => {
+    const moveDir = new THREE.Vector3(0, 0, -1)
+    const rotated = rotateMovementByCamera(moveDir, 0)
+    expect(rotated.x).toBeCloseTo(0)
+    expect(rotated.z).toBeCloseTo(-1)
+  })
+
+  it('yaw=PI/2 rotates W to move +X instead of -Z', () => {
+    const moveDir = new THREE.Vector3(0, 0, -1)
+    const rotated = rotateMovementByCamera(moveDir, Math.PI / 2)
+    expect(rotated.x).toBeCloseTo(1)
+    expect(rotated.z).toBeCloseTo(0)
+  })
+
+  it('yaw=PI rotates W to move +Z (camera behind)', () => {
+    const moveDir = new THREE.Vector3(0, 0, -1)
+    const rotated = rotateMovementByCamera(moveDir, Math.PI)
+    expect(rotated.x).toBeCloseTo(0)
+    expect(rotated.z).toBeCloseTo(1)
+  })
+
+  it('zero movement vector stays zero regardless of yaw', () => {
+    const moveDir = new THREE.Vector3(0, 0, 0)
+    const rotated = rotateMovementByCamera(moveDir, Math.PI / 4)
+    expect(rotated.x).toBe(0)
+    expect(rotated.y).toBe(0)
+    expect(rotated.z).toBe(0)
+  })
+
+  it('preserves movement magnitude', () => {
+    const moveDir = new THREE.Vector3(0.707, 0, -0.707) // diagonal
+    const rotated = rotateMovementByCamera(moveDir, Math.PI / 3)
+    expect(rotated.length()).toBeCloseTo(moveDir.length())
   })
 })

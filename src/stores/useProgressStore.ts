@@ -15,7 +15,7 @@ interface ProgressState {
 }
 
 export const useProgressStore = create<ProgressState>((set, get) => ({
-  unlockedGames: ['basketball', 'soccer', 'bowling', 'minigolf'],
+  unlockedGames: ['basketball', 'soccer', 'bowling', 'minigolf', 'archery'],
   totalStars: 0,
   achievements: [],
   recentUnlocks: [],
