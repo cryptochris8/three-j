@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { PlayerProfile } from '@/types'
+import { LEGACY_SKIN_MAP } from '@/core/constants'
 
 const DEFAULT_PROFILES: PlayerProfile[] = [
   { id: 1, name: 'Player 1', age: 6, avatar: '🌟', skinId: 1, coins: 0, totalXP: 0, createdAt: Date.now() },
@@ -76,14 +77,20 @@ export const usePlayerStore = create<PlayerState>()(
       name: 'three-j-players',
       merge: (persisted, current) => {
         const state = { ...current, ...(persisted as Partial<PlayerState>) }
-        // Backwards compat: migrate old `gender` field to `skinId`
         if (state.profiles) {
           state.profiles = state.profiles.map((p) => {
             const legacy = p as PlayerProfile & { gender?: string }
-            if (legacy.skinId != null) return p
-            const skinId = legacy.gender === 'female' ? 2 : 1
-            const { gender: _, ...rest } = legacy
-            return { ...rest, skinId } as PlayerProfile
+            // Migrate old `gender` field to skinId
+            if (legacy.skinId == null) {
+              const skinId = legacy.gender === 'female' ? 2 : 1
+              const { gender: _, ...rest } = legacy
+              return { ...rest, skinId } as PlayerProfile
+            }
+            // Migrate old skinId (1-10) to edition numbers
+            if (legacy.skinId >= 1 && legacy.skinId <= 10) {
+              return { ...p, skinId: LEGACY_SKIN_MAP[legacy.skinId] ?? 1 }
+            }
+            return p
           })
         }
         return state

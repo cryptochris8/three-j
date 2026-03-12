@@ -18,6 +18,11 @@ export function getStarRating(game: string, score: number): number {
   return 0
 }
 
+export function getGameCoins(stars: number, isNewHighScore: boolean): number {
+  const starCoins = [0, 5, 10, 15][stars] ?? 0
+  return starCoins + (isNewHighScore ? 5 : 0)
+}
+
 export function getScoreLabel(_game: string, stars: number): string {
   if (stars === 3) return 'Amazing!'
   if (stars === 2) return 'Great job!'

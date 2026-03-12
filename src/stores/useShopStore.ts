@@ -9,6 +9,7 @@ interface ShopState {
   equippedBall: string | null
   equippedCelebration: string | null
   equippedTheme: string | null
+  equippedAccessory: string | null
   owns: (itemId: string) => boolean
   buyItem: (itemId: string, price: number) => boolean
   equipItem: (itemId: string, category: ShopItemCategory) => void
@@ -22,6 +23,7 @@ export const useShopStore = create<ShopState>()(
       equippedBall: null,
       equippedCelebration: null,
       equippedTheme: null,
+      equippedAccessory: null,
 
       owns: (itemId) => get().ownedItems.includes(itemId),
 
@@ -45,6 +47,9 @@ export const useShopStore = create<ShopState>()(
             break
           case 'theme':
             set({ equippedTheme: get().equippedTheme === itemId ? null : itemId })
+            break
+          case 'accessory':
+            set({ equippedAccessory: get().equippedAccessory === itemId ? null : itemId })
             break
         }
       },

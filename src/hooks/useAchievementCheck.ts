@@ -2,6 +2,7 @@ import { useCallback } from 'react'
 import { useScoreStore } from '@/stores/useScoreStore'
 import { useProgressStore } from '@/stores/useProgressStore'
 import { useEducationStore } from '@/stores/useEducationStore'
+import { useGameStore } from '@/stores/useGameStore'
 import { checkAchievements, type AchievementContext } from '@/systems/achievements'
 import { audioManager } from '@/core/AudioManager'
 
@@ -19,17 +20,19 @@ export function useAchievementCheck() {
   const totalCorrect = useEducationStore((s) => s.totalCorrect)
   const totalAnswered = useEducationStore((s) => s.totalAnswered)
   const streak = useEducationStore((s) => s.streak)
+  const selectedDifficulty = useGameStore((s) => s.selectedDifficulty)
 
   const checkAndUnlock = useCallback(() => {
     const ctx: AchievementContext = {
       totalStars,
       unlockedGames,
       highScores,
-      history: history.map((h) => ({ game: h.game, score: h.score, stars: h.stars })),
+      history: history.map((h) => ({ game: h.game, score: h.score, stars: h.stars, difficulty: h.difficulty })),
       totalCorrect,
       totalAnswered,
       educationStreak: streak,
       achievements,
+      selectedDifficulty,
     }
 
     const newlyUnlocked = checkAchievements(ctx)
@@ -39,7 +42,7 @@ export function useAchievementCheck() {
     }
 
     return newlyUnlocked
-  }, [totalStars, unlockedGames, highScores, history, totalCorrect, totalAnswered, streak, achievements, unlockAchievement])
+  }, [totalStars, unlockedGames, highScores, history, totalCorrect, totalAnswered, streak, achievements, unlockAchievement, selectedDifficulty])
 
   return checkAndUnlock
 }

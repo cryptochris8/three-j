@@ -2,12 +2,22 @@ import { Suspense } from 'react'
 import { useGLTF } from '@react-three/drei'
 import { HytopiaAvatar, type AnimationState } from '@/components/HytopiaAvatar'
 import { usePlayerStore } from '@/stores/usePlayerStore'
-import { AVATAR_OPTIONS, DEFAULT_SKIN_ID } from '@/core/constants'
+import { LEGACY_SKIN_MAP, DEFAULT_SKIN_ID } from '@/core/constants'
 
-/** Get avatar skin URL for a given skinId, with fallback to first option */
+/** Get avatar skin URL for a given skinId (edition number), with legacy fallback */
 export function getAvatarSkin(skinId?: number): string {
-  const option = AVATAR_OPTIONS.find((o) => o.id === (skinId ?? DEFAULT_SKIN_ID))
-  return option?.path ?? AVATAR_OPTIONS[0].path
+  const id = skinId ?? DEFAULT_SKIN_ID
+  // Legacy skinIds 1-10 map to specific edition numbers
+  if (id >= 1 && id <= 10) {
+    const edition = LEGACY_SKIN_MAP[id] ?? 1
+    return `/skins/avatars/${edition}.png`
+  }
+  // Direct edition number
+  if (id >= 1 && id <= 3000) {
+    return `/skins/avatars/${id}.png`
+  }
+  // Fallback
+  return '/skins/avatars/1.png'
 }
 
 interface GameAvatarProps {

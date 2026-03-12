@@ -13,6 +13,8 @@ const GAME_INFO = [
   { key: 'soccer', label: 'Soccer', emoji: '⚽', lowerBetter: false },
   { key: 'bowling', label: 'Bowling', emoji: '🎳', lowerBetter: false },
   { key: 'minigolf', label: 'Mini-Golf', emoji: '⛳', lowerBetter: true },
+  { key: 'archery', label: 'Archery', emoji: '🏹', lowerBetter: false },
+  { key: 'football', label: 'Football', emoji: '🏈', lowerBetter: false },
 ]
 
 function StatBox({ label, value, color }: { label: string; value: string | number; color?: string }) {

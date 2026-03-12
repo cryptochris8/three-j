@@ -122,3 +122,30 @@ export const AVATAR_OPTIONS = [
 ] as const
 
 export const DEFAULT_SKIN_ID = 1
+
+/** Maps old skinId (1-10) from AVATAR_OPTIONS to actual edition numbers */
+export const LEGACY_SKIN_MAP: Record<number, number> = {
+  1: 1,
+  2: 100,
+  3: 250,
+  4: 500,
+  5: 750,
+  6: 1000,
+  7: 1500,
+  8: 2000,
+  9: 2500,
+  10: 3000,
+}
+
+export type AvatarSport = 'soccer' | 'basketball' | 'football' | 'golf' | 'tennis' | 'rugby' | 'baseball' | 'other'
+
+export const SPORT_TABS: { label: string; value: AvatarSport | 'all' }[] = [
+  { label: 'All', value: 'all' },
+  { label: 'Soccer', value: 'soccer' },
+  { label: 'Basketball', value: 'basketball' },
+  { label: 'Football', value: 'football' },
+  { label: 'Golf', value: 'golf' },
+  { label: 'Tennis', value: 'tennis' },
+  { label: 'Rugby', value: 'rugby' },
+  { label: 'Baseball', value: 'baseball' },
+]

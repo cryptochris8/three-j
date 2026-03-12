@@ -4,11 +4,12 @@ export interface AchievementContext {
   totalStars: number
   unlockedGames: string[]
   highScores: Record<string, number>
-  history: { game: string; score: number; stars: number }[]
+  history: { game: string; score: number; stars: number; difficulty?: string }[]
   totalCorrect: number
   totalAnswered: number
   educationStreak: number
   achievements: Achievement[]
+  selectedDifficulty: string
 }
 
 export interface AchievementDef {
@@ -40,12 +41,12 @@ export const ACHIEVEMENT_CATALOG: AchievementDef[] = [
 
   // Cross-game: unlock & play
   {
-    id: 'all-unlocked', name: 'All Access', description: 'Unlock all five games', icon: 'unlock',
-    check: (ctx) => ['basketball', 'soccer', 'bowling', 'minigolf', 'archery'].every((g) => ctx.unlockedGames.includes(g)),
+    id: 'all-unlocked', name: 'All Access', description: 'Unlock all six games', icon: 'unlock',
+    check: (ctx) => ['basketball', 'soccer', 'bowling', 'minigolf', 'archery', 'football'].every((g) => ctx.unlockedGames.includes(g)),
   },
   {
-    id: 'all-played', name: 'Well Rounded', description: 'Play all five games', icon: 'games',
-    check: (ctx) => ['basketball', 'soccer', 'bowling', 'minigolf', 'archery'].every(
+    id: 'all-played', name: 'Well Rounded', description: 'Play all six games', icon: 'games',
+    check: (ctx) => ['basketball', 'soccer', 'bowling', 'minigolf', 'archery', 'football'].every(
       (g) => ctx.history.some((h) => h.game === g),
     ),
   },
@@ -112,6 +113,112 @@ export const ACHIEVEMENT_CATALOG: AchievementDef[] = [
   {
     id: 'quiz-50', name: 'Studious', description: 'Answer 50 quiz questions total', icon: 'book',
     check: (ctx) => ctx.totalAnswered >= 50,
+  },
+
+  // Football achievements
+  {
+    id: 'football-first', name: 'First Down', description: 'Complete a football game', icon: 'football',
+    check: (ctx) => ctx.history.some((h) => h.game === 'football'),
+  },
+  {
+    id: 'football-3star', name: 'Quarterback', description: 'Earn 3 stars in football', icon: 'football',
+    check: (ctx) => ctx.history.some((h) => h.game === 'football' && h.stars >= 3),
+  },
+  {
+    id: 'football-100', name: 'Century Pass', description: 'Score 100+ in football', icon: 'football',
+    check: (ctx) => ctx.history.some((h) => h.game === 'football' && h.score >= 100),
+  },
+
+  // Mastery achievements
+  {
+    id: 'bowling-perfect', name: 'Perfect Game', description: 'Score 150+ in bowling', icon: 'bowling',
+    check: (ctx) => ctx.history.some((h) => h.game === 'bowling' && h.score >= 150),
+  },
+  {
+    id: 'golf-hole-in-one', name: 'Hole in One', description: 'Finish mini-golf in 9 or fewer strokes', icon: 'golf',
+    check: (ctx) => ctx.history.some((h) => h.game === 'minigolf' && h.score <= 9),
+  },
+  {
+    id: 'archery-sharpshooter', name: 'Eagle Eye', description: 'Score 200+ in archery', icon: 'archery',
+    check: (ctx) => ctx.history.some((h) => h.game === 'archery' && h.score >= 200),
+  },
+  {
+    id: 'soccer-clean-sheet', name: 'Clean Sheet', description: 'Score 5+ goals in soccer', icon: 'soccer',
+    check: (ctx) => ctx.history.some((h) => h.game === 'soccer' && h.score >= 5),
+  },
+  {
+    id: 'basketball-60', name: 'Slam Dunk King', description: 'Score 60+ in basketball', icon: 'basketball',
+    check: (ctx) => ctx.history.some((h) => h.game === 'basketball' && h.score >= 60),
+  },
+
+  // Difficulty achievements
+  {
+    id: 'win-easy', name: 'Easy Breezy', description: 'Earn 3 stars on easy difficulty', icon: 'star',
+    check: (ctx) => ctx.history.some((h) => h.stars >= 3 && h.difficulty === 'easy'),
+  },
+  {
+    id: 'win-medium', name: 'Stepping Up', description: 'Earn 3 stars on medium difficulty', icon: 'star',
+    check: (ctx) => ctx.history.some((h) => h.stars >= 3 && h.difficulty === 'medium'),
+  },
+  {
+    id: 'win-hard', name: 'Champion', description: 'Earn 3 stars on hard difficulty', icon: 'trophy',
+    check: (ctx) => ctx.history.some((h) => h.stars >= 3 && h.difficulty === 'hard'),
+  },
+
+  // Cumulative achievements
+  {
+    id: 'twenty-five-games', name: 'Sports Fanatic', description: 'Complete 25 games', icon: 'fire',
+    check: (ctx) => ctx.history.length >= 25,
+  },
+  {
+    id: 'fifty-games', name: 'Legend', description: 'Complete 50 games', icon: 'trophy',
+    check: (ctx) => ctx.history.length >= 50,
+  },
+  {
+    id: 'star-100', name: 'Constellation', description: 'Earn 100 total stars', icon: 'stars',
+    check: (ctx) => ctx.totalStars >= 100,
+  },
+  {
+    id: 'total-score-500', name: 'High Roller', description: 'Accumulate 500+ total score (excl. mini-golf)', icon: 'medal',
+    check: (ctx) => ctx.history
+      .filter((h) => h.game !== 'minigolf')
+      .reduce((sum, h) => sum + h.score, 0) >= 500,
+  },
+
+  // Cross-game achievements
+  {
+    id: 'three-star-trio', name: 'Triple Threat', description: 'Earn 3 stars in 3 different games', icon: 'stars',
+    check: (ctx) => {
+      const gamesWithThreeStars = new Set(
+        ctx.history.filter((h) => h.stars >= 3).map((h) => h.game),
+      )
+      return gamesWithThreeStars.size >= 3
+    },
+  },
+  {
+    id: 'three-star-all', name: 'Perfectionist', description: 'Earn 3 stars in all 6 games', icon: 'trophy',
+    check: (ctx) => ['basketball', 'soccer', 'bowling', 'minigolf', 'archery', 'football'].every(
+      (g) => ctx.history.some((h) => h.game === g && h.stars >= 3),
+    ),
+  },
+  {
+    id: 'hard-trio', name: 'Hardcore', description: 'Earn 3 stars on hard in 3 different games', icon: 'trophy',
+    check: (ctx) => {
+      const gamesWithHardThreeStars = new Set(
+        ctx.history.filter((h) => h.stars >= 3 && h.difficulty === 'hard').map((h) => h.game),
+      )
+      return gamesWithHardThreeStars.size >= 3
+    },
+  },
+
+  // Education milestones
+  {
+    id: 'quiz-100', name: 'Scholar', description: 'Answer 100 questions correctly', icon: 'brain',
+    check: (ctx) => ctx.totalCorrect >= 100,
+  },
+  {
+    id: 'quiz-streak-20', name: 'Unstoppable', description: 'Get a 20-question correct streak', icon: 'fire',
+    check: (ctx) => ctx.educationStreak >= 20,
   },
 ]
 

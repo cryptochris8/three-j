@@ -1,4 +1,4 @@
-export type ShopItemCategory = 'ball' | 'celebration' | 'theme'
+export type ShopItemCategory = 'ball' | 'celebration' | 'theme' | 'accessory'
 
 export interface ShopItem {
   id: string
@@ -26,6 +26,20 @@ export const SHOP_CATALOG: ShopItem[] = [
   { id: 'theme-neon', name: 'Neon Glow', category: 'theme', price: 25, color: '#00FF88', description: 'Neon green glow effects' },
   { id: 'theme-sunset', name: 'Sunset', category: 'theme', price: 25, color: '#FF6347', description: 'Warm sunset color scheme' },
   { id: 'theme-ocean', name: 'Ocean', category: 'theme', price: 25, color: '#1E90FF', description: 'Deep ocean blue theme' },
+  { id: 'theme-arctic', name: 'Arctic', category: 'theme', price: 25, color: '#A5F2F3', description: 'Cool icy blue theme' },
+
+  // Extra balls
+  { id: 'ball-emerald', name: 'Emerald Ball', category: 'ball', price: 10, color: '#50C878', description: 'Brilliant emerald green' },
+  { id: 'ball-shadow', name: 'Shadow Ball', category: 'ball', price: 15, color: '#2C2C2C', description: 'Mysterious dark ball' },
+
+  // Extra celebration
+  { id: 'celeb-confetti', name: 'Mega Confetti', category: 'celebration', price: 20, description: 'Extra confetti on every score' },
+
+  // Accessories (gear for specific games)
+  { id: 'acc-bow-flame', name: 'Flame Bow', category: 'accessory', price: 20, color: '#FF4500', description: 'Fiery bow skin for archery' },
+  { id: 'acc-football-gold', name: 'Gold Football', category: 'accessory', price: 20, color: '#FFD700', description: 'Golden football for throws' },
+  { id: 'acc-bowling-crystal', name: 'Crystal Ball', category: 'accessory', price: 20, color: '#E0F7FA', description: 'Crystal bowling ball' },
+  { id: 'acc-golf-star', name: 'Star Putter', category: 'accessory', price: 15, color: '#FFEB3B', description: 'Star-themed golf putter' },
 ]
 
 export function getItemById(id: string): ShopItem | undefined {

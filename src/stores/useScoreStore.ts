@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Scene, GameResult } from '@/types'
+import type { Scene, GameResult, Difficulty } from '@/types'
 
 interface ScoreState {
   currentScore: number
@@ -10,7 +10,7 @@ interface ScoreState {
   incrementStreak: () => void
   resetStreak: () => void
   resetCurrentScore: () => void
-  saveResult: (game: Scene, score: number, stars: number) => void
+  saveResult: (game: Scene, score: number, stars: number, difficulty?: Difficulty) => void
   getHighScore: (game: string) => number
   getBestStars: (game: string) => number
   getGamesPlayed: (game: string) => number
@@ -33,7 +33,7 @@ export const useScoreStore = create<ScoreState>((set, get) => ({
 
   resetCurrentScore: () => set({ currentScore: 0, currentStreak: 0 }),
 
-  saveResult: (game, score, stars) =>
+  saveResult: (game, score, stars, difficulty) =>
     set((s) => {
       const key = game
       const prevHigh = s.highScores[key] ?? 0
@@ -48,7 +48,7 @@ export const useScoreStore = create<ScoreState>((set, get) => ({
           ...s.highScores,
           [key]: newHigh,
         },
-        history: [...s.history, { game, score, stars, date: Date.now() }],
+        history: [...s.history, { game, score, stars, date: Date.now(), difficulty }],
       }
     }),
 

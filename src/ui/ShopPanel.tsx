@@ -12,6 +12,7 @@ const TABS: { value: ShopItemCategory; label: string }[] = [
   { value: 'ball', label: 'Balls' },
   { value: 'celebration', label: 'Effects' },
   { value: 'theme', label: 'Themes' },
+  { value: 'accessory', label: 'Gear' },
 ]
 
 export function ShopPanel({ onClose }: ShopPanelProps) {
@@ -23,12 +24,14 @@ export function ShopPanel({ onClose }: ShopPanelProps) {
   const equippedBall = useShopStore((s) => s.equippedBall)
   const equippedCelebration = useShopStore((s) => s.equippedCelebration)
   const equippedTheme = useShopStore((s) => s.equippedTheme)
+  const equippedAccessory = useShopStore((s) => s.equippedAccessory)
 
   const items = SHOP_CATALOG.filter((i) => i.category === tab)
 
   const getEquipped = (category: ShopItemCategory) => {
     if (category === 'ball') return equippedBall
     if (category === 'celebration') return equippedCelebration
+    if (category === 'accessory') return equippedAccessory
     return equippedTheme
   }
 

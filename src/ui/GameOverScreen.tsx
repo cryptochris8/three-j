@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useScoreStore } from '@/stores/useScoreStore'
 import { useGameStore } from '@/stores/useGameStore'
 import { useProgressStore } from '@/stores/useProgressStore'
-import { getStarRating } from '@/utils/scoring'
+import { usePlayerStore } from '@/stores/usePlayerStore'
+import { getStarRating, getGameCoins } from '@/utils/scoring'
 import { COLORS } from '@/core/constants'
 import { saveCurrentPlayer } from '@/core/playerScoping'
 import { useAchievementCheck } from '@/hooks/useAchievementCheck'
@@ -20,7 +21,9 @@ export function GameOverScreen({ game, onPlayAgain }: GameOverScreenProps) {
   const saveResult = useScoreStore((s) => s.saveResult)
   const returnToHub = useGameStore((s) => s.returnToHub)
   const returnToMenu = useGameStore((s) => s.returnToMenu)
+  const selectedDifficulty = useGameStore((s) => s.selectedDifficulty)
   const addStars = useProgressStore((s) => s.addStars)
+  const addCoins = usePlayerStore((s) => s.addCoins)
   const checkAndUnlock = useAchievementCheck()
   const playAgainRef = useRef<HTMLButtonElement>(null)
 
@@ -32,6 +35,7 @@ export function GameOverScreen({ game, onPlayAgain }: GameOverScreenProps) {
   const isNewHigh = isLowerBetter
     ? (highScore === 0 || currentScore < highScore)
     : currentScore > highScore
+  const coinsEarned = getGameCoins(stars, isNewHigh)
 
   // Animated score counter
   const [displayScore, setDisplayScore] = useState(0)
@@ -69,7 +73,8 @@ export function GameOverScreen({ game, onPlayAgain }: GameOverScreenProps) {
   }, [stars])
 
   const handleContinue = () => {
-    saveResult(game, currentScore, stars)
+    if (coinsEarned > 0) addCoins(coinsEarned)
+    saveResult(game, currentScore, stars, selectedDifficulty)
     addStars(stars)
     checkAndUnlock()
     saveCurrentPlayer()
@@ -77,7 +82,8 @@ export function GameOverScreen({ game, onPlayAgain }: GameOverScreenProps) {
   }
 
   const handleMainMenu = () => {
-    saveResult(game, currentScore, stars)
+    if (coinsEarned > 0) addCoins(coinsEarned)
+    saveResult(game, currentScore, stars, selectedDifficulty)
     addStars(stars)
     checkAndUnlock()
     saveCurrentPlayer()
@@ -85,7 +91,8 @@ export function GameOverScreen({ game, onPlayAgain }: GameOverScreenProps) {
   }
 
   const handlePlayAgain = () => {
-    saveResult(game, currentScore, stars)
+    if (coinsEarned > 0) addCoins(coinsEarned)
+    saveResult(game, currentScore, stars, selectedDifficulty)
     addStars(stars)
     checkAndUnlock()
     saveCurrentPlayer()
@@ -193,9 +200,23 @@ export function GameOverScreen({ game, onPlayAgain }: GameOverScreenProps) {
       }}>
         {displayScore}
       </div>
-      <div style={{ fontSize: '0.9rem', opacity: 0.6, marginBottom: '2rem' }}>
+      <div style={{ fontSize: '0.9rem', opacity: 0.6, marginBottom: '0.5rem' }}>
         Best: {bestScore}
       </div>
+
+      {coinsEarned > 0 && (
+        <div style={{
+          fontSize: '1rem',
+          fontWeight: 600,
+          color: COLORS.accent,
+          marginBottom: '2rem',
+        }}>
+          +{coinsEarned} coins
+        </div>
+      )}
+      {coinsEarned === 0 && (
+        <div style={{ marginBottom: '2rem' }} />
+      )}
 
       <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center', padding: '0 1rem' }}>
         <button

@@ -60,6 +60,7 @@ export interface GameResult {
   score: number
   stars: number
   date: number
+  difficulty?: Difficulty
 }
 
 export interface StarRating {

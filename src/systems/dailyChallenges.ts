@@ -41,6 +41,22 @@ const CHALLENGE_TEMPLATES: { game: Scene; descriptions: { desc: string; target: 
       { desc: 'Get a par or better on {target} holes', target: 3 },
     ],
   },
+  {
+    game: 'archery',
+    descriptions: [
+      { desc: 'Score {target} points in archery', target: 50 },
+      { desc: 'Score {target} points in archery', target: 100 },
+      { desc: 'Hit {target} targets in archery', target: 10 },
+    ],
+  },
+  {
+    game: 'football',
+    descriptions: [
+      { desc: 'Score {target} points in football', target: 50 },
+      { desc: 'Score {target} points in football', target: 100 },
+      { desc: 'Hit {target} targets in football', target: 10 },
+    ],
+  },
 ]
 
 /**
