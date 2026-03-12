@@ -95,7 +95,20 @@ export const SCENE_AUDIO: Partial<Record<string, AudioManifestEntry>> = {
       { name: 'bullseye', src: '/audio/voice/swish.mp3' },
     ],
     music: [
-      { name: 'archery', src: '/audio/music/basketball.wav' },
+      { name: 'archery', src: '/audio/music/archery.mp3' },
+    ],
+  },
+  football: {
+    sounds: [
+      { name: 'arrowShoot', src: '/audio/sfx/bounce.mp3' },
+      { name: 'targetHit', src: '/audio/sfx/click.mp3' },
+      { name: 'crowd', src: '/audio/sfx/crowd.mp3' },
+    ],
+    voices: [
+      { name: 'bullseye', src: '/audio/voice/swish.mp3' },
+    ],
+    music: [
+      { name: 'football', src: '/audio/music/football.mp3' },
     ],
   },
 }

@@ -52,6 +52,8 @@ const SCENE_MUSIC: Record<string, MusicName> = {
   soccer: 'soccer',
   bowling: 'bowling',
   minigolf: 'minigolf',
+  archery: 'archery',
+  football: 'football',
 }
 
 export function App() {
