@@ -72,13 +72,21 @@ export function useGameSession() {
     setTimeout(() => setShowConfetti(false), durationMs)
   }, [])
 
+  const playMode = useGameStore((s) => s.playMode)
+  const selectedGrade = useGameStore((s) => s.selectedGrade)
+
   const triggerQuiz = useCallback((category?: QuestionCategory) => {
+    if (playMode === 'openWorld') return
+
     const engine = getQuestionEngine(answeredIds)
+    if (selectedGrade) {
+      engine.setGradeLevel(selectedGrade)
+    }
     const question = engine.getQuestion(difficulty, category, activeProfile?.age ?? 8)
     useEducationStore.getState().setCurrentQuestion(question)
     audioManager.playVoice('quizTime')
     setGamePhase('quiz')
-  }, [answeredIds, difficulty, activeProfile, setGamePhase])
+  }, [answeredIds, difficulty, activeProfile, setGamePhase, playMode, selectedGrade])
 
   const endGame = useCallback(() => {
     audioManager.playVoice('gameOver')

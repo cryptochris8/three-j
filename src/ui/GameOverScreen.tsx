@@ -6,6 +6,7 @@ import { getStarRating } from '@/utils/scoring'
 import { COLORS } from '@/core/constants'
 import { saveCurrentPlayer } from '@/core/playerScoping'
 import { useAchievementCheck } from '@/hooks/useAchievementCheck'
+import { useSoccer } from '@/games/soccer/useSoccer'
 import type { Scene } from '@/types'
 
 interface GameOverScreenProps {
@@ -22,6 +23,9 @@ export function GameOverScreen({ game, onPlayAgain }: GameOverScreenProps) {
   const addStars = useProgressStore((s) => s.addStars)
   const checkAndUnlock = useAchievementCheck()
   const playAgainRef = useRef<HTMLButtonElement>(null)
+
+  const soccerPlayerGoals = useSoccer((s) => s.playerGoals)
+  const soccerOpponentGoals = useSoccer((s) => s.opponentGoals)
 
   const stars = getStarRating(game, currentScore)
   const isLowerBetter = game === 'minigolf'
@@ -134,6 +138,35 @@ export function GameOverScreen({ game, onPlayAgain }: GameOverScreenProps) {
           }}
         >
           NEW HIGH SCORE!
+        </div>
+      )}
+
+      {game === 'soccer' && (
+        <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+          <div style={{
+            fontSize: 'clamp(1.5rem, 4vw, 2rem)',
+            fontWeight: 700,
+            marginBottom: '0.3rem',
+          }}>
+            <span style={{ color: '#2ECC71' }}>YOU</span>
+            {' '}{soccerPlayerGoals} - {soccerOpponentGoals}{' '}
+            <span style={{ color: '#E74C3C' }}>GK</span>
+          </div>
+          <div style={{
+            fontSize: '1.1rem',
+            fontWeight: 600,
+            color: soccerPlayerGoals > soccerOpponentGoals
+              ? '#2ECC71'
+              : soccerPlayerGoals < soccerOpponentGoals
+                ? '#E74C3C'
+                : '#F7C948',
+          }}>
+            {soccerPlayerGoals > soccerOpponentGoals
+              ? 'You Win!'
+              : soccerPlayerGoals < soccerOpponentGoals
+                ? 'You Lose!'
+                : 'Draw!'}
+          </div>
         </div>
       )}
 

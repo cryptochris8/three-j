@@ -7,6 +7,10 @@ import {
   calculateCameraPosition,
   lerpAngle,
   rotateMovementByCamera,
+  getCameraYawForward,
+  isJumpPressed,
+  applyGravity,
+  computeJump,
 } from '@/components/PlayerController'
 
 describe('calculateMoveDirection', () => {
@@ -235,5 +239,191 @@ describe('rotateMovementByCamera', () => {
     const moveDir = new THREE.Vector3(0.707, 0, -0.707) // diagonal
     const rotated = rotateMovementByCamera(moveDir, Math.PI / 3)
     expect(rotated.length()).toBeCloseTo(moveDir.length())
+  })
+})
+
+describe('getCameraYawForward', () => {
+  it('yaw=0 returns PI (forward is opposite of camera behind player)', () => {
+    // When yaw=0, camera is behind player at +Z
+    // Forward direction should be -Z, which is angle PI
+    const result = getCameraYawForward(0)
+    expect(result).toBeCloseTo(Math.PI)
+  })
+
+  it('yaw=PI/2 returns 3*PI/2 (forward angle rotated 90 degrees)', () => {
+    // Camera at +X side (yaw=PI/2), forward should be 3*PI/2 (270 degrees)
+    const result = getCameraYawForward(Math.PI / 2)
+    expect(result).toBeCloseTo((3 * Math.PI) / 2)
+  })
+
+  it('yaw=PI returns 2*PI (camera in front, forward points away)', () => {
+    // Camera at -Z (in front at yaw=PI), forward is 0/2*PI direction
+    const result = getCameraYawForward(Math.PI)
+    // atan2(0, -1) + PI = PI + PI = 2*PI
+    expect(result).toBeCloseTo(2 * Math.PI)
+  })
+
+  it('yaw=-PI/2 returns PI/2 (forward angle for camera on left)', () => {
+    // Camera at -X side (yaw=-PI/2), forward should be PI/2 (90 degrees)
+    const result = getCameraYawForward(-Math.PI / 2)
+    expect(result).toBeCloseTo(Math.PI / 2)
+  })
+
+  it('yaw=PI/4 returns 5*PI/4 (consistent forward angle)', () => {
+    // Camera at 45 degrees, forward should be 225 degrees (5*PI/4)
+    const result = getCameraYawForward(Math.PI / 4)
+    expect(result).toBeCloseTo((5 * Math.PI) / 4)
+  })
+
+  it('yaw=-PI/4 returns 3*PI/4 (negative yaw values work correctly)', () => {
+    // Camera at -45 degrees, forward is at 135 degrees (3*PI/4)
+    const result = getCameraYawForward(-Math.PI / 4)
+    expect(result).toBeCloseTo((3 * Math.PI) / 4)
+  })
+
+  it('result is always a valid angle in [0, 2*PI] range', () => {
+    // Test various angles to ensure output is in valid range
+    const testAngles = [0, Math.PI / 6, Math.PI / 3, Math.PI / 2, (2 * Math.PI) / 3, Math.PI, -Math.PI / 2, -Math.PI / 3]
+
+    testAngles.forEach((yaw) => {
+      const result = getCameraYawForward(yaw)
+      // Result should be between 0 and 2*PI (function outputs in this range)
+      expect(result).toBeGreaterThanOrEqual(0)
+      expect(result).toBeLessThanOrEqual(2 * Math.PI + 0.0001)
+    })
+  })
+
+  it('rotating yaw by 180 degrees changes forward by 180 degrees', () => {
+    const yaw1 = Math.PI / 4
+    const yaw2 = yaw1 + Math.PI
+    const forward1 = getCameraYawForward(yaw1)
+    const forward2 = getCameraYawForward(yaw2)
+
+    // Forward directions should differ by PI (180 degrees)
+    const diff = Math.abs(forward1 - forward2)
+    expect(diff).toBeCloseTo(Math.PI)
+  })
+
+  it('function output is consistent with trigonometric identity', () => {
+    // atan2(sin(x), cos(x)) should equal x (modulo 2*PI)
+    // So getCameraYawForward(yaw) should equal yaw + PI (modulo 2*PI)
+    const testYaw = Math.PI / 3
+    const result = getCameraYawForward(testYaw)
+    const expected = testYaw + Math.PI
+    expect(result).toBeCloseTo(expected)
+  })
+})
+
+describe('isJumpPressed', () => {
+  it('returns false when no keys pressed', () => {
+    expect(isJumpPressed(new Set())).toBe(false)
+  })
+
+  it('returns true when Space is pressed', () => {
+    expect(isJumpPressed(new Set(['Space']))).toBe(true)
+  })
+
+  it('returns false when only movement keys are pressed', () => {
+    expect(isJumpPressed(new Set(['KeyW', 'ShiftLeft']))).toBe(false)
+  })
+
+  it('returns true when Space is pressed alongside other keys', () => {
+    expect(isJumpPressed(new Set(['KeyW', 'Space', 'ShiftLeft']))).toBe(true)
+  })
+})
+
+describe('applyGravity', () => {
+  it('reduces velocity by gravity * delta', () => {
+    const result = applyGravity(8, 20, 1 / 60)
+    expect(result).toBeCloseTo(8 - 20 / 60)
+  })
+
+  it('makes velocity negative when falling', () => {
+    const result = applyGravity(0, 20, 0.5)
+    expect(result).toBe(-10)
+  })
+
+  it('increases downward speed when already falling', () => {
+    const result = applyGravity(-5, 20, 0.1)
+    expect(result).toBeCloseTo(-7)
+  })
+
+  it('returns same velocity when gravity is zero', () => {
+    expect(applyGravity(5, 0, 1)).toBe(5)
+  })
+})
+
+describe('computeJump', () => {
+  it('rises when vertical velocity is positive', () => {
+    const result = computeJump(0, 8, 20, 0, 1 / 60)
+    expect(result.y).toBeGreaterThan(0)
+    expect(result.grounded).toBe(false)
+  })
+
+  it('lands and resets when falling below ground', () => {
+    const result = computeJump(0.05, -10, 20, 0, 1 / 60)
+    // With velocity -10 and delta 1/60, new Y = 0.05 + (-10 - 20/60) * (1/60)
+    // That's well below 0
+    expect(result.y).toBe(0)
+    expect(result.velocity).toBe(0)
+    expect(result.grounded).toBe(true)
+  })
+
+  it('stays airborne above ground', () => {
+    const result = computeJump(5, -2, 20, 0, 1 / 60)
+    expect(result.y).toBeGreaterThan(0)
+    expect(result.grounded).toBe(false)
+  })
+
+  it('gravity decelerates upward motion', () => {
+    const result = computeJump(2, 8, 20, 0, 1 / 60)
+    expect(result.velocity).toBeLessThan(8)
+  })
+
+  it('returns grounded at exactly ground level', () => {
+    // Start at ground with no velocity
+    const result = computeJump(0, 0, 20, 0, 1 / 60)
+    // velocity becomes -20/60, y becomes 0 + (-20/60)*(1/60) < 0 → clamped to ground
+    expect(result.y).toBe(0)
+    expect(result.grounded).toBe(true)
+    expect(result.velocity).toBe(0)
+  })
+
+  it('respects custom ground Y', () => {
+    const result = computeJump(5.05, -10, 20, 5, 1 / 60)
+    expect(result.y).toBe(5)
+    expect(result.grounded).toBe(true)
+  })
+
+  it('full jump arc returns to ground', () => {
+    // Simulate a full jump over many frames
+    let y = 0
+    let vel = 8
+    const gravity = 20
+    const groundY = 0
+    const dt = 1 / 60
+    let maxHeight = 0
+    let frames = 0
+
+    // Launch
+    for (let i = 0; i < 300; i++) {
+      const result = computeJump(y, vel, gravity, groundY, dt)
+      y = result.y
+      vel = result.velocity
+      if (y > maxHeight) maxHeight = y
+      frames++
+      if (result.grounded && i > 0) break
+    }
+
+    expect(maxHeight).toBeGreaterThan(0.5)
+    expect(y).toBe(0)
+    expect(frames).toBeLessThan(300) // should land before timeout
+  })
+
+  it('cannot double jump (grounded is false while airborne)', () => {
+    const launch = computeJump(0, 8, 20, 0, 1 / 60)
+    expect(launch.grounded).toBe(false)
+    // A second jump attempt while airborne would check isGrounded first
+    // The function itself just computes physics; grounded=false prevents re-jump at call site
   })
 })

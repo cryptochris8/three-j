@@ -65,6 +65,41 @@ export function rotateMovementByCamera(moveDir: THREE.Vector3, cameraYaw: number
   )
 }
 
+/** Pure function: check if jump key is pressed */
+export function isJumpPressed(keys: Set<string>): boolean {
+  return keys.has('Space')
+}
+
+/** Pure function: compute new vertical velocity after applying gravity for one frame */
+export function applyGravity(verticalVelocity: number, gravity: number, delta: number): number {
+  return verticalVelocity - gravity * delta
+}
+
+/** Pure function: compute jump result — new Y position, velocity, and grounded state */
+export function computeJump(
+  currentY: number,
+  verticalVelocity: number,
+  gravity: number,
+  groundY: number,
+  delta: number,
+): { y: number; velocity: number; grounded: boolean } {
+  const newVelocity = applyGravity(verticalVelocity, gravity, delta)
+  const newY = currentY + newVelocity * delta
+
+  if (newY <= groundY) {
+    return { y: groundY, velocity: 0, grounded: true }
+  }
+  return { y: newY, velocity: newVelocity, grounded: false }
+}
+
+/** Pure function: get the forward direction the camera is facing (yaw only, XZ plane) */
+export function getCameraYawForward(cameraYaw: number): number {
+  // Camera looks from orbit position toward player center.
+  // The "forward" direction for movement is the opposite of the camera's orbit angle.
+  // When yaw=0, camera is behind player (+Z), forward is -Z → angle 0
+  return Math.atan2(Math.sin(cameraYaw), Math.cos(cameraYaw)) + Math.PI
+}
+
 interface PlayerControllerProps {
   onPositionChange?: (pos: THREE.Vector3) => void
 }
@@ -75,9 +110,11 @@ export function PlayerController({ onPositionChange }: PlayerControllerProps) {
   const keys = useKeyboard()
   const { camera } = useThree()
   const currentFacing = useRef(0)
-  const [movementState, setMovementState] = useState<'idle' | 'walk' | 'run'>('idle')
+  const [movementState, setMovementState] = useState<AnimationState>('idle')
   const animation: AnimationState = movementState
   const isFirstFrame = useRef(true)
+  const verticalVelocity = useRef(0)
+  const isGrounded = useRef(true)
   const { yaw, pitch } = useMouseLook()
   const skinId = usePlayerStore((s) => {
     const profile = s.profiles.find((p) => p.id === s.activeProfileId)
@@ -89,16 +126,32 @@ export function PlayerController({ onPositionChange }: PlayerControllerProps) {
     if (!bodyRef.current) return
 
     const rawDir = calculateMoveDirection(keys)
-    const moveDir = rotateMovementByCamera(rawDir, yaw.current)
+    // Negate yaw so W always moves AWAY from camera (camera-to-player direction)
+    const moveDir = rotateMovementByCamera(rawDir, -yaw.current)
     const moving = moveDir.lengthSq() > 0
     const sprinting = moving && isSprinting(keys)
 
-    // Only trigger re-render when movement state changes
-    const newState = moving ? (sprinting ? 'run' : 'walk') : 'idle'
-    if (newState !== movementState) setMovementState(newState as 'idle' | 'walk' | 'run')
+    // Jump: trigger on Space when grounded
+    if (isJumpPressed(keys) && isGrounded.current) {
+      verticalVelocity.current = HUB.jumpVelocity
+      isGrounded.current = false
+    }
 
+    // Apply jump/gravity physics
     const currentPos = bodyRef.current.translation()
-    const pos = new THREE.Vector3(currentPos.x, currentPos.y, currentPos.z)
+    const jumpResult = computeJump(
+      currentPos.y, verticalVelocity.current, HUB.gravity, HUB.groundY, delta,
+    )
+    verticalVelocity.current = jumpResult.velocity
+    isGrounded.current = jumpResult.grounded
+
+    // Determine animation state: jump overrides walk/run
+    const newState: AnimationState = !isGrounded.current
+      ? 'jump'
+      : moving ? (sprinting ? 'run' : 'walk') : 'idle'
+    if (newState !== movementState) setMovementState(newState)
+
+    const pos = new THREE.Vector3(currentPos.x, jumpResult.y, currentPos.z)
 
     if (moving) {
       const speed = sprinting ? HUB.playerSpeed * HUB.sprintMultiplier : HUB.playerSpeed
@@ -107,18 +160,31 @@ export function PlayerController({ onPositionChange }: PlayerControllerProps) {
       const clamped = clampToWorld(newPos, HUB.worldSize / 2 - 1)
       bodyRef.current.setNextKinematicTranslation({ x: clamped.x, y: clamped.y, z: clamped.z })
 
-      // Model faces -Z at rotation.y=0, so negate to align facing with movement
+      // Minecraft-style: face movement direction instantly.
+      // Mouse steers via yaw → movement direction changes → model snaps to match.
       const targetAngle = Math.atan2(-moveDir.x, -moveDir.z)
-      currentFacing.current = lerpAngle(currentFacing.current, targetAngle, 0.15)
+      currentFacing.current = targetAngle
 
       if (avatarGroupRef.current) {
         avatarGroupRef.current.rotation.y = currentFacing.current
       }
 
       pos.copy(clamped)
+    } else {
+      // Still update position for jump/gravity when not moving horizontally
+      bodyRef.current.setNextKinematicTranslation({ x: pos.x, y: pos.y, z: pos.z })
+
+      // When idle, slowly align character to face camera forward direction
+      // This ensures pressing W immediately moves where camera points
+      const cameraForwardAngle = yaw.current
+      currentFacing.current = lerpAngle(currentFacing.current, cameraForwardAngle, HUB.idleFacingLerpSpeed)
+
+      if (avatarGroupRef.current) {
+        avatarGroupRef.current.rotation.y = currentFacing.current
+      }
     }
 
-    // Camera positioned by mouse yaw/pitch (not player facing)
+    // Camera follows behind player — locked to yaw angle
     const d = HUB.cameraDistance
     const p = pitch.current
     const y = yaw.current
@@ -127,13 +193,16 @@ export function PlayerController({ onPositionChange }: PlayerControllerProps) {
     const camZ = pos.z + d * Math.cos(y) * Math.cos(p)
     const camTarget = new THREE.Vector3(camX, camY, camZ)
 
+    // Tighter camera follow when moving for responsive steering
+    const camLerp = moving ? HUB.movingCameraLerpSpeed : HUB.cameraLerpSpeed
+
     if (isFirstFrame.current) {
       camera.position.copy(camTarget)
       isFirstFrame.current = false
     } else {
-      camera.position.lerp(camTarget, 0.1)
+      camera.position.lerp(camTarget, camLerp)
     }
-    camera.lookAt(pos.x, pos.y + 1, pos.z)
+    camera.lookAt(pos.x, pos.y + HUB.cameraHeightOffset, pos.z)
 
     onPositionChange?.(pos)
   })

@@ -35,6 +35,11 @@ function BowlingGame() {
   } = useBowling()
 
   const { popups, showConfetti, addPopup, removePopup, triggerConfetti, triggerQuiz, endGame } = useGameScene('bowling', () => resetGame(bowlingConfig.totalFrames))
+
+  // Stable ref for triggerQuiz to avoid stale closures and dependency re-triggers
+  const triggerQuizRef = useRef(triggerQuiz)
+  triggerQuizRef.current = triggerQuiz
+
   const pinsRef = useRef<PinsHandle>(null)
 
   const [reactionAnim, setReactionAnim] = useState<AnimationState | null>(null)
@@ -131,7 +136,7 @@ function BowlingGame() {
 
       setTimeout(() => {
         if (currentFrame % 2 === 0 && currentFrame < bowlingConfig.totalFrames) {
-          triggerQuiz('spelling')
+          triggerQuizRef.current()
         } else {
           handleNextFrame()
         }
@@ -142,7 +147,7 @@ function BowlingGame() {
     if (bowlingPhase !== 'frameover') {
       frameOverHandled.current = false
     }
-  }, [bowlingPhase, isStrike, isSpare, frameScores, addScore, currentFrame, triggerConfetti, addPopup, triggerQuiz])
+  }, [bowlingPhase, isStrike, isSpare, frameScores, addScore, currentFrame, triggerConfetti, addPopup]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleNextFrame = useCallback(() => {
     if (pinsRef.current) {

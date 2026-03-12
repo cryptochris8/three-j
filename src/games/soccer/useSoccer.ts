@@ -23,7 +23,6 @@ interface SoccerState {
   registerGoal: () => void
   registerSaved: () => void
   registerMiss: () => void
-  simulateOpponent: () => boolean
   nextKick: () => void
   setKeeperSlowed: (slowed: boolean) => void
   resetGame: (totalKicks?: number) => void
@@ -64,21 +63,16 @@ export const useSoccer = create<SoccerState>((set, get) => ({
 
   registerSaved: () => {
     if (get().phase !== 'flying') return
-    set({ phase: 'result', lastResult: 'saved' })
+    set((s) => ({
+      phase: 'result',
+      lastResult: 'saved',
+      opponentGoals: s.opponentGoals + 1,
+    }))
   },
 
   registerMiss: () => {
     if (get().phase !== 'flying') return
     set({ phase: 'result', lastResult: 'miss' })
-  },
-
-  simulateOpponent: () => {
-    // Opponent scores ~60% of the time
-    const scores = Math.random() < 0.6
-    if (scores) {
-      set((s) => ({ opponentGoals: s.opponentGoals + 1 }))
-    }
-    return scores
   },
 
   nextKick: () => {

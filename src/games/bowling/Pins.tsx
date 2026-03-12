@@ -1,6 +1,12 @@
-import { useRef, useImperativeHandle, forwardRef } from 'react'
-import { RigidBody, type RapierRigidBody } from '@react-three/rapier'
+import { useRef, useImperativeHandle, forwardRef, useMemo } from 'react'
+import { useGLTF } from '@react-three/drei'
+import { RigidBody, CylinderCollider, type RapierRigidBody } from '@react-three/rapier'
+import { SkeletonUtils } from 'three-stdlib'
 import { BOWLING_CONFIG, getPinPositions } from './config'
+
+const PIN_MODEL_PATH = '/models/bowling-pin/scene.gltf'
+// Model is ~243 units tall (4.86 raw × 50 baked scale). Scale to match pinHeight.
+const PIN_MODEL_SCALE = BOWLING_CONFIG.pinHeight / 243
 
 export interface PinsHandle {
   checkKnocked: () => boolean[]
@@ -11,6 +17,13 @@ export interface PinsHandle {
 export const Pins = forwardRef<PinsHandle>(function Pins(_, ref) {
   const pinRefs = useRef<(RapierRigidBody | null)[]>([])
   const positions = useRef(getPinPositions())
+  const { scene } = useGLTF(PIN_MODEL_PATH)
+
+  // Create 10 independent clones of the model
+  const clones = useMemo(
+    () => Array.from({ length: 10 }, () => SkeletonUtils.clone(scene)),
+    [scene],
+  )
 
   useImperativeHandle(ref, () => ({
     checkKnocked: () => {
@@ -66,27 +79,19 @@ export const Pins = forwardRef<PinsHandle>(function Pins(_, ref) {
           position={pos}
           mass={BOWLING_CONFIG.pinMass}
           restitution={BOWLING_CONFIG.pinRestitution}
-          colliders="hull"
-          linearDamping={0.5}
-          angularDamping={0.5}
+          colliders={false}
+          linearDamping={0.2}
+          angularDamping={0.2}
         >
-          {/* Pin body */}
-          <mesh castShadow>
-            <cylinderGeometry args={[BOWLING_CONFIG.pinRadius, BOWLING_CONFIG.pinRadius * 0.8, BOWLING_CONFIG.pinHeight, 8]} />
-            <meshStandardMaterial color="#F5F5F5" roughness={0.4} />
-          </mesh>
-          {/* Pin neck */}
-          <mesh position={[0, BOWLING_CONFIG.pinHeight * 0.35, 0]} castShadow>
-            <sphereGeometry args={[BOWLING_CONFIG.pinRadius * 0.6, 8, 8]} />
-            <meshStandardMaterial color="#F5F5F5" roughness={0.4} />
-          </mesh>
-          {/* Red stripes */}
-          <mesh position={[0, BOWLING_CONFIG.pinHeight * 0.15, 0]}>
-            <cylinderGeometry args={[BOWLING_CONFIG.pinRadius * 1.01, BOWLING_CONFIG.pinRadius * 1.01, 0.02, 8]} />
-            <meshStandardMaterial color="#CC0000" />
-          </mesh>
+          <CylinderCollider args={[BOWLING_CONFIG.pinHeight / 2, BOWLING_CONFIG.pinRadius]} />
+          {/* GLTF model — origin at bottom, so offset down by half pin height to center on RigidBody */}
+          <group scale={PIN_MODEL_SCALE} position={[0, -BOWLING_CONFIG.pinHeight / 2, 0]}>
+            <primitive object={clones[i]} />
+          </group>
         </RigidBody>
       ))}
     </group>
   )
 })
+
+useGLTF.preload(PIN_MODEL_PATH)

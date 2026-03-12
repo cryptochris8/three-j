@@ -67,10 +67,10 @@ export function TargetSpawner({ maxTargets, speedScale, sizeScale, paused, onTar
           speedScale={speedScale}
           sizeScale={sizeScale}
           onHit={(points, position) => {
-            removeTarget(t.id)
             onTargetHit(points, position, t.targetType.label, t.targetType.color)
           }}
           onExpired={() => removeTarget(t.id)}
+          onDeath={() => removeTarget(t.id)}
         />
       ))}
     </group>

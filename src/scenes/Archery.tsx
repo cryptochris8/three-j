@@ -26,6 +26,14 @@ interface PendingShot {
   color?: string
 }
 
+interface ActiveArrow {
+  id: number
+  start: [number, number, number]
+  end: [number, number, number]
+  hitData: PendingShot
+  powerRatio: number
+}
+
 function ArcheryGame() {
   const { camera } = useThree()
   const gamePhase = useGameStore((s) => s.gamePhase)
@@ -33,7 +41,6 @@ function ArcheryGame() {
   const config = useMemo(() => getArcheryConfig(selectedDifficulty), [selectedDifficulty])
   const addScore = useScoreStore((s) => s.addScore)
   const incrementStreak = useScoreStore((s) => s.incrementStreak)
-  const currentStreak = useScoreStore((s) => s.currentStreak)
   const resetStreak = useScoreStore((s) => s.resetStreak)
 
   const {
@@ -55,7 +62,7 @@ function ArcheryGame() {
   const [reactionAnim, setReactionAnim] = useState<AnimationState | null>(null)
   const [explosions, setExplosions] = useState<{ id: number; position: [number, number, number]; color: string }[]>([])
   const explosionIdRef = useRef(0)
-  const [arrows, setArrows] = useState<{ id: number; start: [number, number, number]; end: [number, number, number] }[]>([])
+  const [arrows, setArrows] = useState<ActiveArrow[]>([])
   const arrowIdRef = useRef(0)
   const [shooting, setShooting] = useState(false)
   const pendingShotRef = useRef<PendingShot | null>(null)
@@ -86,6 +93,15 @@ function ArcheryGame() {
     prevShotsFired.current = 0
   })
 
+  // Stable ref for triggerQuiz to avoid stale closures and dependency re-triggers
+  const triggerQuizRef = useRef(triggerQuiz)
+  triggerQuizRef.current = triggerQuiz
+
+  // Store quiz timer in a ref so it survives effect re-runs.
+  // Without this, firing another arrow (changing shotsFired) would re-run the effect
+  // and the cleanup would cancel the pending quiz timer before it fires.
+  const quizTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   // Timer
   useEffect(() => {
     if (gamePhase !== 'playing') return
@@ -96,25 +112,23 @@ function ArcheryGame() {
     return () => clearInterval(interval)
   }, [gamePhase, decrementTime, endGame])
 
-  // Quiz trigger based on shots fired
+  // Quiz trigger based on shots fired — delay so player sees hit/miss feedback
   useEffect(() => {
     if (shotsFired > 0 && shotsFired % config.quizEveryNShots === 0 && shotsFired !== prevShotsFired.current && gamePhase === 'playing') {
       prevShotsFired.current = shotsFired
-      triggerQuiz()
+      if (quizTimerRef.current) clearTimeout(quizTimerRef.current)
+      quizTimerRef.current = setTimeout(() => {
+        quizTimerRef.current = null
+        triggerQuizRef.current()
+      }, 2500)
     }
-  }, [shotsFired, config.quizEveryNShots, gamePhase, triggerQuiz])
+  }, [shotsFired, config.quizEveryNShots, gamePhase])
 
-  // Spawn a visual arrow and trigger bow recoil
-  const spawnArrow = useCallback((endPos: [number, number, number]) => {
-    const startPos: [number, number, number] = [
-      ARCHERY_CONFIG.cameraPosition[0],
-      ARCHERY_CONFIG.cameraPosition[1],
-      ARCHERY_CONFIG.cameraPosition[2] - 1,
-    ]
-    const id = arrowIdRef.current++
-    setArrows((prev) => [...prev, { id, start: startPos, end: endPos }])
-    setShooting(true)
-    setTimeout(() => setShooting(false), 100)
+  // Cleanup quiz timer on unmount only
+  useEffect(() => {
+    return () => {
+      if (quizTimerRef.current) clearTimeout(quizTimerRef.current)
+    }
   }, [])
 
   // Power meter oscillation
@@ -137,7 +151,7 @@ function ArcheryGame() {
   }, [gamePhase, startCharging])
 
   // Target hit — called from Target onPointerUp (target dies on release)
-  // Just records the hit info; scoring happens in the window pointerup handler
+  // Just records the hit info; scoring happens when arrow arrives
   const handleTargetHit = useCallback((points: number, position: [number, number, number], label: string, targetColor: string) => {
     if (gamePhase !== 'playing') return
     pendingShotRef.current = { type: 'hit', points, position, label, color: targetColor }
@@ -151,8 +165,87 @@ function ArcheryGame() {
     pendingShotRef.current = { type: 'miss', position: [p.x, p.y, p.z] }
   }, [gamePhase])
 
-  // Window pointerUp → finalize the shot with power multiplier
-  // R3F onPointerUp handlers fire first (setting pendingShotRef), then this runs
+  // Refs for stable access in onComplete callback without stale closures
+  const addScoreRef = useRef(addScore)
+  addScoreRef.current = addScore
+  const incrementStreakRef = useRef(incrementStreak)
+  incrementStreakRef.current = incrementStreak
+  const resetStreakRef = useRef(resetStreak)
+  resetStreakRef.current = resetStreak
+  const registerHitRef = useRef(registerHit)
+  registerHitRef.current = registerHit
+  const registerMissRef = useRef(registerMiss)
+  registerMissRef.current = registerMiss
+  const addPopupRef = useRef(addPopup)
+  addPopupRef.current = addPopup
+  const triggerConfettiRef = useRef(triggerConfetti)
+  triggerConfettiRef.current = triggerConfetti
+
+  // Called when an arrow projectile arrives at its destination
+  const handleArrowArrival = useCallback((arrow: ActiveArrow) => {
+    setArrows((prev) => prev.filter((x) => x.id !== arrow.id))
+
+    const { hitData, powerRatio } = arrow
+
+    if (hitData.type === 'hit') {
+      const basePoints = hitData.points ?? 1
+      const finalMultipliedPoints = Math.max(1, Math.round(basePoints * powerRatio * 2))
+
+      registerHitRef.current(basePoints)
+      incrementStreakRef.current()
+      audioManager.play('targetHit')
+
+      let finalPoints = finalMultipliedPoints
+      const multiplierText = `(${(powerRatio * 2).toFixed(1)}x)`
+      let text = `${hitData.label} +${finalMultipliedPoints} ${multiplierText}`
+      let color = '#F7C948'
+
+      if (basePoints >= 20) {
+        text = `DIAMOND! ${hitData.label} +${finalMultipliedPoints} ${multiplierText}`
+        color = '#9B59B6'
+        audioManager.playVoice('bullseye')
+        triggerConfettiRef.current()
+      } else if (basePoints >= 10) {
+        text = `BULLSEYE! ${hitData.label} +${finalMultipliedPoints} ${multiplierText}`
+        color = '#E74C3C'
+        triggerConfettiRef.current()
+      } else if (basePoints >= 5) {
+        text = `GREAT! ${hitData.label} +${finalMultipliedPoints} ${multiplierText}`
+        color = '#F7C948'
+      } else if (basePoints >= 3) {
+        color = '#2ECC71'
+      }
+
+      // Streak bonus — read current streak at arrival time
+      const currentStreakNow = useScoreStore.getState().currentStreak
+      if (currentStreakNow >= ARCHERY_CONFIG.streakBonusThreshold) {
+        finalPoints *= ARCHERY_CONFIG.streakBonusMultiplier
+        text += ` x2 STREAK!`
+        audioManager.playVoice('streak')
+        audioManager.play('crowd')
+      }
+
+      addScoreRef.current(finalPoints)
+
+      // Screen shake on big hits (5+ base points)
+      if (basePoints >= 5) {
+        setShakeActive(true)
+        setTimeout(() => setShakeActive(false), 300)
+      }
+
+      // Particle explosion at hit position
+      const explosionId = explosionIdRef.current++
+      setExplosions((prev) => [...prev, { id: explosionId, position: hitData.position, color: hitData.color ?? '#F7C948' }])
+
+      addPopupRef.current(text, hitData.position, color)
+    } else {
+      // Miss
+      registerMissRef.current()
+      resetStreakRef.current()
+    }
+  }, [])
+
+  // Window pointerUp → launch the arrow; scoring deferred to arrival
   useEffect(() => {
     const handlePointerUp = () => {
       if (!useArchery.getState().isPowerCharging) return
@@ -165,71 +258,24 @@ function ArcheryGame() {
 
       shoot() // count the shot
       audioManager.play('arrowShoot')
-      spawnArrow(pending.position)
 
+      // Spawn arrow carrying hit data — scoring happens on arrival
+      const startPos: [number, number, number] = [
+        ARCHERY_CONFIG.cameraPosition[0],
+        ARCHERY_CONFIG.cameraPosition[1],
+        ARCHERY_CONFIG.cameraPosition[2] - 1,
+      ]
+      const id = arrowIdRef.current++
       const powerRatio = power / ARCHERY_CONFIG.maxPower
+      setArrows((prev) => [...prev, { id, start: startPos, end: pending.position, hitData: pending, powerRatio }])
 
-      if (pending.type === 'hit') {
-        const basePoints = pending.points ?? 1
-        const finalMultipliedPoints = Math.max(1, Math.round(basePoints * powerRatio * 2))
-
-        registerHit(basePoints)
-        incrementStreak()
-        audioManager.play('targetHit')
-
-        let finalPoints = finalMultipliedPoints
-        const multiplierText = `(${(powerRatio * 2).toFixed(1)}x)`
-        let text = `${pending.label} +${finalMultipliedPoints} ${multiplierText}`
-        let color = '#F7C948'
-
-        if (basePoints >= 20) {
-          text = `DIAMOND! ${pending.label} +${finalMultipliedPoints} ${multiplierText}`
-          color = '#9B59B6'
-          audioManager.playVoice('bullseye')
-          triggerConfetti()
-        } else if (basePoints >= 10) {
-          text = `BULLSEYE! ${pending.label} +${finalMultipliedPoints} ${multiplierText}`
-          color = '#E74C3C'
-          triggerConfetti()
-        } else if (basePoints >= 5) {
-          text = `GREAT! ${pending.label} +${finalMultipliedPoints} ${multiplierText}`
-          color = '#F7C948'
-        } else if (basePoints >= 3) {
-          color = '#2ECC71'
-        }
-
-        // Streak bonus
-        const newStreak = currentStreak + 1
-        if (newStreak >= ARCHERY_CONFIG.streakBonusThreshold) {
-          finalPoints *= ARCHERY_CONFIG.streakBonusMultiplier
-          text += ` x2 STREAK!`
-          audioManager.playVoice('streak')
-          audioManager.play('crowd')
-        }
-
-        addScore(finalPoints)
-
-        // Screen shake on big hits (5+ base points)
-        if (basePoints >= 5) {
-          setShakeActive(true)
-          setTimeout(() => setShakeActive(false), 300)
-        }
-
-        // Particle explosion at hit position
-        const explosionId = explosionIdRef.current++
-        setExplosions((prev) => [...prev, { id: explosionId, position: pending.position, color: pending.color ?? '#F7C948' }])
-
-        addPopup(text, pending.position, color)
-      } else {
-        // Miss
-        registerMiss()
-        resetStreak()
-      }
+      setShooting(true)
+      setTimeout(() => setShooting(false), 100)
     }
 
     window.addEventListener('pointerup', handlePointerUp)
     return () => window.removeEventListener('pointerup', handlePointerUp)
-  }, [releaseShot, shoot, registerHit, registerMiss, incrementStreak, currentStreak, resetStreak, addScore, addPopup, triggerConfetti, spawnArrow])
+  }, [releaseShot, shoot])
 
   return (
     <>
@@ -269,7 +315,7 @@ function ArcheryGame() {
           key={a.id}
           startPosition={a.start}
           endPosition={a.end}
-          onComplete={() => setArrows((prev) => prev.filter((x) => x.id !== a.id))}
+          onComplete={() => handleArrowArrival(a)}
         />
       ))}
 

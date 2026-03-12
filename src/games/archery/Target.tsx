@@ -12,35 +12,54 @@ interface TargetProps {
   sizeScale: number
   onHit: (points: number, position: [number, number, number]) => void
   onExpired: () => void
+  onDeath: () => void
 }
 
-export function Target({ targetType, startPosition, direction, speedScale, sizeScale, onHit, onExpired }: TargetProps) {
+export function Target({ targetType, startPosition, direction, speedScale, sizeScale, onHit, onExpired, onDeath }: TargetProps) {
   const groupRef = useRef<Group>(null)
-  const [alive, setAlive] = useState(true)
-  const [dying, setDying] = useState(false)
+  const [visible, setVisible] = useState(true)
+  // Use refs for animation flags — useFrame reads these every frame,
+  // and useState closures would be stale for 1-3 frames after setState
+  const frozenRef = useRef(false)
+  const dyingRef = useRef(false)
+  const aliveRef = useRef(true)
   const elapsed = useRef(0)
   const dyingElapsed = useRef(0)
+  const frozenElapsed = useRef(0)
   const speed = targetType.speed * speedScale
   const hitboxSize = targetType.size * sizeScale
 
   const DYING_DURATION = 0.6
+  // Delay dying animation so the arrow visually arrives before NPC reacts
+  const DEATH_DELAY = 0.25
 
   useFrame((_, delta) => {
-    if (!groupRef.current) return
+    if (!groupRef.current || !aliveRef.current) return
 
     // Dying animation: spin + scale down
-    if (dying) {
+    if (dyingRef.current) {
       dyingElapsed.current += delta
       const progress = Math.min(dyingElapsed.current / DYING_DURATION, 1)
       groupRef.current.scale.setScalar(1 - progress)
       groupRef.current.rotation.y += delta * 12
       if (progress >= 1) {
-        setAlive(false)
+        aliveRef.current = false
+        setVisible(false)
+        onDeath()
       }
       return
     }
 
-    if (!alive) return
+    // Frozen = hit registered, waiting for arrow to arrive before dying
+    if (frozenRef.current) {
+      frozenElapsed.current += delta
+      if (frozenElapsed.current >= DEATH_DELAY) {
+        dyingRef.current = true
+        dyingElapsed.current = 0
+      }
+      return
+    }
+
     elapsed.current += delta
 
     // Move along x-axis
@@ -53,16 +72,17 @@ export function Target({ targetType, startPosition, direction, speedScale, sizeS
 
     // Check if out of bounds
     if (Math.abs(x - startPosition[0]) > 24) {
-      setAlive(false)
+      aliveRef.current = false
+      setVisible(false)
       onExpired()
     }
   })
 
   const handleClick = (e: { stopPropagation: () => void }) => {
     e.stopPropagation()
-    if (!alive || dying || !groupRef.current) return
-    setDying(true)
-    dyingElapsed.current = 0
+    if (!aliveRef.current || dyingRef.current || frozenRef.current || !groupRef.current) return
+    frozenRef.current = true
+    frozenElapsed.current = 0
     const pos: [number, number, number] = [
       groupRef.current.position.x,
       groupRef.current.position.y + 1,
@@ -71,7 +91,7 @@ export function Target({ targetType, startPosition, direction, speedScale, sizeS
     onHit(targetType.points, pos)
   }
 
-  if (!alive) return null
+  if (!visible) return null
 
   return (
     <group ref={groupRef} position={startPosition}>

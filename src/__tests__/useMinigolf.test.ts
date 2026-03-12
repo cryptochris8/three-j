@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { useMinigolf } from '@/games/minigolf/useMinigolf'
-import { MINIGOLF_CONFIG, COURSES } from '@/games/minigolf/config'
+import { MINIGOLF_CONFIG, COURSES, isBallOutOfBounds } from '@/games/minigolf/config'
 
 describe('useMinigolf', () => {
   beforeEach(() => {
@@ -163,5 +163,56 @@ describe('useMinigolf', () => {
       useMinigolf.getState().saveBallPosition([1, 0.5, -2])
       expect(useMinigolf.getState().lastBallPosition).toEqual([1, 0.5, -2])
     })
+  })
+})
+
+describe('isBallOutOfBounds', () => {
+  // Test with generic course dimensions (width=1.5, length=9)
+  const w = 1.5
+  const l = 9
+
+  it('returns false when ball is centered on course', () => {
+    expect(isBallOutOfBounds(0, 0.05, 0, w, l)).toBe(false)
+  })
+
+  it('returns false near edge but within margin', () => {
+    // halfW + margin = 0.75 + 1.0 = 1.75
+    expect(isBallOutOfBounds(1.5, 0.05, 0, w, l)).toBe(false)
+  })
+
+  it('returns true when ball exceeds X boundary with margin', () => {
+    // halfW + margin = 0.75 + 1.0 = 1.75
+    expect(isBallOutOfBounds(2.0, 0.05, 0, w, l)).toBe(true)
+  })
+
+  it('returns true when ball exceeds negative X boundary', () => {
+    expect(isBallOutOfBounds(-2.0, 0.05, 0, w, l)).toBe(true)
+  })
+
+  it('returns true when ball exceeds Z boundary', () => {
+    // halfL + margin = 4.5 + 1.0 = 5.5
+    expect(isBallOutOfBounds(0, 0.05, 6, w, l)).toBe(true)
+  })
+
+  it('returns true when ball exceeds negative Z boundary', () => {
+    expect(isBallOutOfBounds(0, 0.05, -6, w, l)).toBe(true)
+  })
+
+  it('returns true when ball falls below Y threshold', () => {
+    expect(isBallOutOfBounds(0, -3, 0, w, l)).toBe(true)
+  })
+
+  it('returns false when ball is just above Y threshold', () => {
+    expect(isBallOutOfBounds(0, -1.5, 0, w, l)).toBe(false)
+  })
+
+  it('returns true when both X and Z are out', () => {
+    expect(isBallOutOfBounds(5, 0, 10, w, l)).toBe(true)
+  })
+
+  it('works with different course dimensions', () => {
+    // Wider course (2.5 width, 11 length) — hole 9
+    expect(isBallOutOfBounds(2.0, 0.05, 0, 2.5, 11)).toBe(false) // within margin
+    expect(isBallOutOfBounds(2.5, 0.05, 0, 2.5, 11)).toBe(true)  // beyond margin
   })
 })

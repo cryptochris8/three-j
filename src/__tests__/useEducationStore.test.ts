@@ -53,10 +53,12 @@ describe('useEducationStore', () => {
       expect(useEducationStore.getState().difficulty).toBe('medium')
     })
 
-    it('clears current question', () => {
-      useEducationStore.setState({ currentQuestion: { id: 'test' } as any })
+    it('preserves current question for result display', () => {
+      const q = { id: 'test' } as any
+      useEducationStore.setState({ currentQuestion: q })
       useEducationStore.getState().answerWrong('q1')
-      expect(useEducationStore.getState().currentQuestion).toBeNull()
+      // currentQuestion stays mounted so QuizModal can show feedback for 3 seconds
+      expect(useEducationStore.getState().currentQuestion).toEqual(q)
     })
   })
 

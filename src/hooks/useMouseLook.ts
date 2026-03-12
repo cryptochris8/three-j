@@ -19,16 +19,29 @@ export function useMouseLook() {
       )
     }
 
-    const onClick = () => {
+    const requestLock = () => {
       if (document.pointerLockElement !== canvas) {
-        canvas.requestPointerLock()
+        canvas.requestPointerLock().catch(() => {
+          // Pointer lock request failed (e.g., not from user gesture) — ignore
+        })
       }
     }
+
+    // Auto-request pointer lock after a brief delay (needs user gesture context)
+    // Browsers require the page to have received a user gesture first, so we
+    // also listen for click as a fallback.
+    const autoLockTimer = setTimeout(() => {
+      requestLock()
+    }, 100)
+
+    // Re-lock on click if pointer lock was lost
+    const onClick = () => requestLock()
 
     canvas.addEventListener('click', onClick)
     document.addEventListener('mousemove', onMouseMove)
 
     return () => {
+      clearTimeout(autoLockTimer)
       canvas.removeEventListener('click', onClick)
       document.removeEventListener('mousemove', onMouseMove)
     }

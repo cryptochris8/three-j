@@ -8,7 +8,7 @@ import { useScoreStore } from '@/stores/useScoreStore'
 import { PhysicsProvider } from '@/core/PhysicsProvider'
 import { Course } from '@/games/minigolf/Course'
 import { useMinigolf } from '@/games/minigolf/useMinigolf'
-import { MINIGOLF_CONFIG, COURSES, getMinigolfConfig } from '@/games/minigolf/config'
+import { MINIGOLF_CONFIG, COURSES, getMinigolfConfig, isBallOutOfBounds } from '@/games/minigolf/config'
 import { ScorePopup } from '@/components/ScorePopup'
 import { Confetti } from '@/components/Confetti'
 import { useGameScene } from '@/hooks/useGameScene'
@@ -87,6 +87,15 @@ function GolfBall() {
 
   const holeConfig = COURSES[currentHole]
 
+  // Grace period: skip OOB checks for a short time after putt starts
+  // to let physics settle (prevents false positives from collider initialization)
+  const rollingStartTime = useRef(0)
+  useEffect(() => {
+    if (phase === 'rolling') {
+      rollingStartTime.current = performance.now()
+    }
+  }, [phase])
+
   // Putt direction indicator: dashed dotted line showing aim direction + power
   // Ground surface is at y=0.05, so dots must be above that
   const aimDotsCount = 12
@@ -142,8 +151,10 @@ function GolfBall() {
       const pos = ballRef.current.translation()
       bx = pos.x; by = pos.y; bz = pos.z
 
-      // Out of bounds: ball fell off the course
-      if (by < MINIGOLF_CONFIG.outOfBoundsY) {
+      // Out of bounds: fell off course OR escaped horizontal boundaries
+      // Skip check during grace period (300ms) to let physics settle after putt
+      const elapsed = performance.now() - rollingStartTime.current
+      if (elapsed > 300 && isBallOutOfBounds(bx, by, bz, holeConfig.courseWidth, holeConfig.courseLength)) {
         outOfBounds()
         return
       }
@@ -462,13 +473,21 @@ function MinigolfGame() {
   }, [waterHazard, addPopup])
 
   // Handle holed -> quiz or next hole
+  // Use a ref to prevent re-triggering when triggerQuiz identity changes
+  // (answeredIds updates after answering, causing triggerQuiz to get a new reference)
+  const quizTriggeredRef = useRef(false)
   useEffect(() => {
-    if (golfPhase !== 'holed') return
-    const timer = setTimeout(() => {
-      triggerQuiz('trivia')
-    }, 2000)
-    return () => clearTimeout(timer)
-  }, [golfPhase, triggerQuiz])
+    if (golfPhase === 'holed') {
+      if (quizTriggeredRef.current) return
+      quizTriggeredRef.current = true
+      const timer = setTimeout(() => {
+        triggerQuiz()
+      }, 2000)
+      return () => clearTimeout(timer)
+    } else {
+      quizTriggeredRef.current = false
+    }
+  }, [golfPhase]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Game done
   useEffect(() => {

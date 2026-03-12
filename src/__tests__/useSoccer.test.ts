@@ -58,13 +58,14 @@ describe('useSoccer', () => {
       expect(useSoccer.getState().lastResult).toBe('goal')
     })
 
-    it('registers saved', () => {
+    it('registers saved and increments opponent (GK) goals', () => {
       useSoccer.getState().startCharging()
       useSoccer.getState().kick()
       useSoccer.getState().registerSaved()
       expect(useSoccer.getState().phase).toBe('result')
       expect(useSoccer.getState().lastResult).toBe('saved')
       expect(useSoccer.getState().playerGoals).toBe(0)
+      expect(useSoccer.getState().opponentGoals).toBe(1)
     })
 
     it('registers miss', () => {
@@ -88,26 +89,12 @@ describe('useSoccer', () => {
       useSoccer.getState().registerGoal()
       expect(useSoccer.getState().playerGoals).toBe(1)
     })
-  })
 
-  describe('opponent simulation', () => {
-    it('returns boolean for opponent scoring', () => {
-      const result = useSoccer.getState().simulateOpponent()
-      expect(typeof result).toBe('boolean')
-    })
-
-    it('increments opponent goals when they score', () => {
-      // Run multiple times - eventually one will score
-      let opScored = false
-      for (let i = 0; i < 50; i++) {
-        useSoccer.getState().resetGame()
-        if (useSoccer.getState().simulateOpponent()) {
-          opScored = true
-          expect(useSoccer.getState().opponentGoals).toBe(1)
-          break
-        }
-      }
-      expect(opScored).toBe(true)
+    it('miss does not increment opponent goals', () => {
+      useSoccer.getState().startCharging()
+      useSoccer.getState().kick()
+      useSoccer.getState().registerMiss()
+      expect(useSoccer.getState().opponentGoals).toBe(0)
     })
   })
 

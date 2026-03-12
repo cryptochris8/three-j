@@ -1,0 +1,695 @@
+import type { Question } from '@/types'
+
+/**
+ * Comprehensive Grade 2 Question Bank
+ * Based on Common Core State Standards for Grade 2 (Ages 7-8)
+ *
+ * Standards Coverage:
+ * - Math (20 questions): 2.OA, 2.NBT, 2.MD, 2.G
+ * - Reading (15 questions): 3 passages with 5 comprehension questions each
+ * - Spelling (10 questions): Long vowels, silent-e, word families
+ * - Science (5 questions): States of matter, habitats, life cycles
+ *
+ * Total: 50 questions
+ */
+export const grade2ComprehensiveQuestions: Question[] = [
+  // ========================================
+  // MATH QUESTIONS (20 total)
+  // Common Core 2.OA, 2.NBT, 2.MD, 2.G
+  // ========================================
+
+  // 2.OA - Operations & Algebraic Thinking (Addition/Subtraction within 100)
+  {
+    id: 'g2-math-1',
+    category: 'math',
+    difficulty: 'easy',
+    question: 'Emma has 15 stickers. Her friend gives her 12 more stickers. How many stickers does Emma have now?',
+    options: ['25', '27', '28', '30'],
+    correctIndex: 1,
+    explanation: '15 + 12 = 27. Emma has 27 stickers in total.',
+    ageMin: 7,
+    ageMax: 8,
+  },
+
+  {
+    id: 'g2-math-2',
+    category: 'math',
+    difficulty: 'easy',
+    question: 'There are 24 apples in a basket. If 9 apples are eaten, how many apples are left?',
+    options: ['13', '14', '15', '16'],
+    correctIndex: 2,
+    explanation: '24 - 9 = 15. There are 15 apples left in the basket.',
+    ageMin: 7,
+    ageMax: 8,
+  },
+
+  {
+    id: 'g2-math-3',
+    category: 'math',
+    difficulty: 'medium',
+    question: 'Which number is odd?',
+    options: ['12', '18', '23', '30'],
+    correctIndex: 2,
+    explanation: '23 is an odd number. Odd numbers end in 1, 3, 5, 7, or 9.',
+    ageMin: 7,
+    ageMax: 8,
+  },
+
+  {
+    id: 'g2-math-4',
+    category: 'math',
+    difficulty: 'medium',
+    question: 'Sam solved 28 math problems in the morning and 34 problems in the afternoon. How many problems did Sam solve in total?',
+    options: ['60', '62', '64', '66'],
+    correctIndex: 1,
+    explanation: '28 + 34 = 62. Sam solved 62 problems in total.',
+    ageMin: 7,
+    ageMax: 8,
+  },
+
+  // 2.NBT - Place Value & Number Operations in Base Ten
+  {
+    id: 'g2-math-5',
+    category: 'math',
+    difficulty: 'easy',
+    question: 'What number has 3 hundreds, 4 tens, and 2 ones?',
+    options: ['234', '324', '342', '432'],
+    correctIndex: 2,
+    explanation: '3 hundreds = 300, 4 tens = 40, 2 ones = 2. So 300 + 40 + 2 = 342.',
+    ageMin: 7,
+    ageMax: 8,
+  },
+
+  {
+    id: 'g2-math-6',
+    category: 'math',
+    difficulty: 'medium',
+    question: 'Count by 5s: 45, 50, 55, ___, 65',
+    options: ['56', '58', '60', '62'],
+    correctIndex: 2,
+    explanation: 'When counting by 5s, the pattern is 45, 50, 55, 60, 65. The missing number is 60.',
+    ageMin: 7,
+    ageMax: 8,
+  },
+
+  {
+    id: 'g2-math-7',
+    category: 'math',
+    difficulty: 'medium',
+    question: 'What is 10 more than 247?',
+    options: ['237', '248', '257', '347'],
+    correctIndex: 2,
+    explanation: '247 + 10 = 257. When you add 10, the tens digit increases by 1.',
+    ageMin: 7,
+    ageMax: 8,
+  },
+
+  {
+    id: 'g2-math-8',
+    category: 'math',
+    difficulty: 'hard',
+    question: 'Which number is greater than 458 but less than 462?',
+    options: ['457', '459', '463', '465'],
+    correctIndex: 1,
+    explanation: '459 is between 458 and 462. It is greater than 458 and less than 462.',
+    ageMin: 7,
+    ageMax: 8,
+  },
+
+  // 2.MD - Measurement & Data (Time, Money, Length)
+  {
+    id: 'g2-math-9',
+    category: 'math',
+    difficulty: 'easy',
+    question: 'The clock shows the big hand on 12 and the small hand on 3. What time is it?',
+    options: ['12:00', '3:00', '12:03', '3:12'],
+    correctIndex: 1,
+    explanation: 'When the small hand points to 3 and the big hand points to 12, it is 3:00.',
+    ageMin: 7,
+    ageMax: 8,
+  },
+
+  {
+    id: 'g2-math-10',
+    category: 'math',
+    difficulty: 'easy',
+    question: 'You have 2 quarters. How many cents do you have?',
+    options: ['25 cents', '40 cents', '50 cents', '75 cents'],
+    correctIndex: 2,
+    explanation: 'Each quarter is worth 25 cents. 2 quarters = 25 + 25 = 50 cents.',
+    ageMin: 7,
+    ageMax: 8,
+  },
+
+  {
+    id: 'g2-math-11',
+    category: 'math',
+    difficulty: 'medium',
+    question: 'A pencil is 7 inches long. A crayon is 4 inches long. How much longer is the pencil than the crayon?',
+    options: ['2 inches', '3 inches', '4 inches', '11 inches'],
+    correctIndex: 1,
+    explanation: '7 - 4 = 3 inches. The pencil is 3 inches longer than the crayon.',
+    ageMin: 7,
+    ageMax: 8,
+  },
+
+  {
+    id: 'g2-math-12',
+    category: 'math',
+    difficulty: 'hard',
+    question: 'Mia has 3 dimes and 4 nickels. How much money does she have in total?',
+    options: ['34 cents', '45 cents', '50 cents', '70 cents'],
+    correctIndex: 2,
+    explanation: '3 dimes = 30 cents (10 + 10 + 10) and 4 nickels = 20 cents (5 + 5 + 5 + 5). Total = 30 + 20 = 50 cents.',
+    ageMin: 7,
+    ageMax: 8,
+  },
+
+  // 2.G - Geometry (Shapes & Fractions of Shapes)
+  {
+    id: 'g2-math-13',
+    category: 'math',
+    difficulty: 'easy',
+    question: 'A rectangle is divided into 2 equal parts. What fraction is each part?',
+    options: ['1/2', '1/3', '1/4', '2/2'],
+    correctIndex: 0,
+    explanation: 'When a shape is divided into 2 equal parts, each part is 1/2 (one-half).',
+    ageMin: 7,
+    ageMax: 8,
+    diagram: {
+      type: 'fraction-bars',
+      bars: [
+        { label: '1/2', totalParts: 2, shadedParts: 1, color: '#3498DB' },
+      ],
+    },
+  },
+
+  {
+    id: 'g2-math-14',
+    category: 'math',
+    difficulty: 'easy',
+    question: 'Look at the bar. What fraction is shaded?',
+    options: ['1/3', '2/3', '1/4', '3/4'],
+    correctIndex: 0,
+    explanation: 'The bar is divided into 3 equal parts, and 1 part is shaded. So the fraction is 1/3.',
+    ageMin: 7,
+    ageMax: 8,
+    diagram: {
+      type: 'fraction-bars',
+      bars: [
+        { label: '?', totalParts: 3, shadedParts: 1, color: '#2ECC71' },
+      ],
+    },
+  },
+
+  {
+    id: 'g2-math-15',
+    category: 'math',
+    difficulty: 'medium',
+    question: 'A circle is divided into 4 equal pieces like a pizza. You eat 1 piece. What fraction did you eat?',
+    options: ['1/2', '1/3', '1/4', '2/4'],
+    correctIndex: 2,
+    explanation: 'The circle has 4 equal pieces, and you ate 1 piece. So you ate 1/4 (one-fourth) of the pizza.',
+    ageMin: 7,
+    ageMax: 8,
+    diagram: {
+      type: 'fraction-bars',
+      bars: [
+        { label: '1/4', totalParts: 4, shadedParts: 1, color: '#E74C3C' },
+      ],
+    },
+  },
+
+  {
+    id: 'g2-math-16',
+    category: 'math',
+    difficulty: 'medium',
+    question: 'Look at the shaded parts. What fraction of the bar is shaded?',
+    options: ['1/4', '2/4', '3/4', '4/4'],
+    correctIndex: 2,
+    explanation: 'The bar has 4 parts and 3 are shaded. The fraction is 3/4 (three-fourths).',
+    ageMin: 7,
+    ageMax: 8,
+    diagram: {
+      type: 'fraction-bars',
+      bars: [
+        { label: '?', totalParts: 4, shadedParts: 3, color: '#F39C12' },
+      ],
+    },
+  },
+
+  {
+    id: 'g2-math-17',
+    category: 'math',
+    difficulty: 'medium',
+    question: 'A square has how many sides?',
+    options: ['3', '4', '5', '6'],
+    correctIndex: 1,
+    explanation: 'A square has 4 sides that are all equal in length.',
+    ageMin: 7,
+    ageMax: 8,
+  },
+
+  {
+    id: 'g2-math-18',
+    category: 'math',
+    difficulty: 'hard',
+    question: 'Look at both bars. Are the shaded parts equal?',
+    options: ['Yes, both show 1/2', 'No, they are different', 'Yes, both show 1/3', 'Yes, both show 2/3'],
+    correctIndex: 0,
+    explanation: 'Both bars show half shaded. The first bar shows 1/2 and the second shows 2/4, which equals 1/2.',
+    ageMin: 7,
+    ageMax: 8,
+    diagram: {
+      type: 'fraction-bars',
+      bars: [
+        { label: '1/2', totalParts: 2, shadedParts: 1, color: '#9B59B6' },
+        { label: '2/4', totalParts: 4, shadedParts: 2, color: '#1ABC9C' },
+      ],
+    },
+  },
+
+  {
+    id: 'g2-math-19',
+    category: 'math',
+    difficulty: 'hard',
+    question: 'A triangle has 3 sides. How many corners (vertices) does it have?',
+    options: ['2', '3', '4', '5'],
+    correctIndex: 1,
+    explanation: 'A triangle has 3 corners (also called vertices). Each side meets at a corner.',
+    ageMin: 7,
+    ageMax: 8,
+  },
+
+  {
+    id: 'g2-math-20',
+    category: 'math',
+    difficulty: 'hard',
+    question: 'Which shows thirds? (The shape divided into 3 equal parts)',
+    options: ['A circle cut into 2 pieces', 'A rectangle cut into 3 equal pieces', 'A square cut into 4 pieces', 'A circle cut into 6 pieces'],
+    correctIndex: 1,
+    explanation: 'Thirds means dividing into 3 equal parts. A rectangle cut into 3 equal pieces shows thirds (1/3 each).',
+    ageMin: 7,
+    ageMax: 8,
+    diagram: {
+      type: 'fraction-bars',
+      bars: [
+        { label: '1/3 each', totalParts: 3, shadedParts: 1, color: '#E67E22' },
+      ],
+    },
+  },
+
+  // ========================================
+  // READING COMPREHENSION (15 questions)
+  // 3 passages × 5 questions each
+  // Lexile level ~400-500
+  // ========================================
+
+  // PASSAGE 1: Ocean Animals (5 questions)
+  {
+    id: 'g2-read-1',
+    category: 'reading',
+    difficulty: 'easy',
+    question: 'What is this story mostly about?',
+    options: ['How dolphins sleep', 'Amazing ocean animals', 'Why the ocean is blue', 'How to swim'],
+    correctIndex: 1,
+    explanation: 'The passage describes several different ocean animals and their interesting features.',
+    ageMin: 7,
+    ageMax: 8,
+    passage: 'The ocean is home to many amazing animals. Dolphins are smart and friendly. They swim together in groups called pods. Dolphins talk to each other by making clicking sounds. Sea turtles are ancient creatures that have lived in the ocean for millions of years. They can hold their breath underwater for up to seven hours! Octopuses are very clever. They can change colors to hide from danger. Some octopuses can even squeeze through tiny holes because they have no bones. Whales are the largest animals on Earth. The blue whale can grow as long as three school buses! These ocean animals are all special in their own way.',
+  },
+
+  {
+    id: 'g2-read-2',
+    category: 'reading',
+    difficulty: 'easy',
+    question: 'How do dolphins talk to each other?',
+    options: ['By waving their fins', 'By making clicking sounds', 'By changing colors', 'They cannot talk'],
+    correctIndex: 1,
+    explanation: 'The passage says "Dolphins talk to each other by making clicking sounds."',
+    ageMin: 7,
+    ageMax: 8,
+    passage: 'The ocean is home to many amazing animals. Dolphins are smart and friendly. They swim together in groups called pods. Dolphins talk to each other by making clicking sounds. Sea turtles are ancient creatures that have lived in the ocean for millions of years. They can hold their breath underwater for up to seven hours! Octopuses are very clever. They can change colors to hide from danger. Some octopuses can even squeeze through tiny holes because they have no bones. Whales are the largest animals on Earth. The blue whale can grow as long as three school buses! These ocean animals are all special in their own way.',
+  },
+
+  {
+    id: 'g2-read-3',
+    category: 'reading',
+    difficulty: 'medium',
+    question: 'What does the word "ancient" mean in this story?',
+    options: ['Very new', 'Very old', 'Very fast', 'Very colorful'],
+    correctIndex: 1,
+    explanation: 'Ancient means very old. The passage says sea turtles "have lived in the ocean for millions of years," which shows they are ancient.',
+    ageMin: 7,
+    ageMax: 8,
+    passage: 'The ocean is home to many amazing animals. Dolphins are smart and friendly. They swim together in groups called pods. Dolphins talk to each other by making clicking sounds. Sea turtles are ancient creatures that have lived in the ocean for millions of years. They can hold their breath underwater for up to seven hours! Octopuses are very clever. They can change colors to hide from danger. Some octopuses can even squeeze through tiny holes because they have no bones. Whales are the largest animals on Earth. The blue whale can grow as long as three school buses! These ocean animals are all special in their own way.',
+  },
+
+  {
+    id: 'g2-read-4',
+    category: 'reading',
+    difficulty: 'medium',
+    question: 'Why can octopuses squeeze through tiny holes?',
+    options: ['They are very small', 'They have no bones', 'They can change colors', 'They live in groups'],
+    correctIndex: 1,
+    explanation: 'The passage states "Some octopuses can even squeeze through tiny holes because they have no bones."',
+    ageMin: 7,
+    ageMax: 8,
+    passage: 'The ocean is home to many amazing animals. Dolphins are smart and friendly. They swim together in groups called pods. Dolphins talk to each other by making clicking sounds. Sea turtles are ancient creatures that have lived in the ocean for millions of years. They can hold their breath underwater for up to seven hours! Octopuses are very clever. They can change colors to hide from danger. Some octopuses can even squeeze through tiny holes because they have no bones. Whales are the largest animals on Earth. The blue whale can grow as long as three school buses! These ocean animals are all special in their own way.',
+  },
+
+  {
+    id: 'g2-read-5',
+    category: 'reading',
+    difficulty: 'hard',
+    question: 'Based on the story, which animal would be best at hiding?',
+    options: ['A whale, because it is large', 'An octopus, because it can change colors', 'A dolphin, because it can click', 'A sea turtle, because it is old'],
+    correctIndex: 1,
+    explanation: 'The passage says octopuses "can change colors to hide from danger," making them the best at hiding.',
+    ageMin: 7,
+    ageMax: 8,
+    passage: 'The ocean is home to many amazing animals. Dolphins are smart and friendly. They swim together in groups called pods. Dolphins talk to each other by making clicking sounds. Sea turtles are ancient creatures that have lived in the ocean for millions of years. They can hold their breath underwater for up to seven hours! Octopuses are very clever. They can change colors to hide from danger. Some octopuses can even squeeze through tiny holes because they have no bones. Whales are the largest animals on Earth. The blue whale can grow as long as three school buses! These ocean animals are all special in their own way.',
+  },
+
+  // PASSAGE 2: Playing Sports (5 questions)
+  {
+    id: 'g2-read-6',
+    category: 'reading',
+    difficulty: 'easy',
+    question: 'What is the main idea of this story?',
+    options: ['Maya learns to play soccer', 'Soccer is the best sport', 'How to kick a ball', 'Maya does not like sports'],
+    correctIndex: 0,
+    explanation: 'The story is about Maya learning to play soccer by practicing and not giving up.',
+    ageMin: 7,
+    ageMax: 8,
+    passage: 'Maya wanted to learn how to play soccer. On her first day of practice, she could not kick the ball very far. The other kids on her team were much better. Maya felt sad and wanted to quit. Her coach, Mr. Lopez, told her not to give up. He said everyone starts as a beginner. Maya practiced kicking the ball every day after school. She practiced in her backyard and at the park. After two weeks, Maya got much better at kicking. She could run faster and pass the ball to her teammates. At the next game, Maya scored her first goal! Her whole team cheered for her. Maya learned that practice makes you better. She also learned that trying hard is more important than being perfect. Now Maya loves playing soccer and she never wants to stop.',
+  },
+
+  {
+    id: 'g2-read-7',
+    category: 'reading',
+    difficulty: 'easy',
+    question: 'How did Maya feel on her first day of practice?',
+    options: ['Happy and excited', 'Sad and wanted to quit', 'Angry at her coach', 'Proud of herself'],
+    correctIndex: 1,
+    explanation: 'The passage says "Maya felt sad and wanted to quit" when she could not kick the ball very far.',
+    ageMin: 7,
+    ageMax: 8,
+    passage: 'Maya wanted to learn how to play soccer. On her first day of practice, she could not kick the ball very far. The other kids on her team were much better. Maya felt sad and wanted to quit. Her coach, Mr. Lopez, told her not to give up. He said everyone starts as a beginner. Maya practiced kicking the ball every day after school. She practiced in her backyard and at the park. After two weeks, Maya got much better at kicking. She could run faster and pass the ball to her teammates. At the next game, Maya scored her first goal! Her whole team cheered for her. Maya learned that practice makes you better. She also learned that trying hard is more important than being perfect. Now Maya loves playing soccer and she never wants to stop.',
+  },
+
+  {
+    id: 'g2-read-8',
+    category: 'reading',
+    difficulty: 'medium',
+    question: 'What does "beginner" mean in this story?',
+    options: ['Someone who is the best', 'Someone who just started learning', 'Someone who teaches others', 'Someone who does not try'],
+    correctIndex: 1,
+    explanation: 'A beginner is someone who is just starting to learn something new. The coach tells Maya that everyone starts as a beginner.',
+    ageMin: 7,
+    ageMax: 8,
+    passage: 'Maya wanted to learn how to play soccer. On her first day of practice, she could not kick the ball very far. The other kids on her team were much better. Maya felt sad and wanted to quit. Her coach, Mr. Lopez, told her not to give up. He said everyone starts as a beginner. Maya practiced kicking the ball every day after school. She practiced in her backyard and at the park. After two weeks, Maya got much better at kicking. She could run faster and pass the ball to her teammates. At the next game, Maya scored her first goal! Her whole team cheered for her. Maya learned that practice makes you better. She also learned that trying hard is more important than being perfect. Now Maya loves playing soccer and she never wants to stop.',
+  },
+
+  {
+    id: 'g2-read-9',
+    category: 'reading',
+    difficulty: 'medium',
+    question: 'What happened because Maya practiced every day?',
+    options: ['She quit the team', 'She got much better at kicking', 'She became a coach', 'She hurt her foot'],
+    correctIndex: 1,
+    explanation: 'The passage says "After two weeks, Maya got much better at kicking" because she practiced every day.',
+    ageMin: 7,
+    ageMax: 8,
+    passage: 'Maya wanted to learn how to play soccer. On her first day of practice, she could not kick the ball very far. The other kids on her team were much better. Maya felt sad and wanted to quit. Her coach, Mr. Lopez, told her not to give up. He said everyone starts as a beginner. Maya practiced kicking the ball every day after school. She practiced in her backyard and at the park. After two weeks, Maya got much better at kicking. She could run faster and pass the ball to her teammates. At the next game, Maya scored her first goal! Her whole team cheered for her. Maya learned that practice makes you better. She also learned that trying hard is more important than being perfect. Now Maya loves playing soccer and she never wants to stop.',
+  },
+
+  {
+    id: 'g2-read-10',
+    category: 'reading',
+    difficulty: 'hard',
+    question: 'What lesson did Maya learn from this experience?',
+    options: ['Soccer is easy', 'Only talented people can play sports', 'Trying hard is more important than being perfect', 'You should quit if something is difficult'],
+    correctIndex: 2,
+    explanation: 'The passage directly states "Maya learned that trying hard is more important than being perfect."',
+    ageMin: 7,
+    ageMax: 8,
+    passage: 'Maya wanted to learn how to play soccer. On her first day of practice, she could not kick the ball very far. The other kids on her team were much better. Maya felt sad and wanted to quit. Her coach, Mr. Lopez, told her not to give up. He said everyone starts as a beginner. Maya practiced kicking the ball every day after school. She practiced in her backyard and at the park. After two weeks, Maya got much better at kicking. She could run faster and pass the ball to her teammates. At the next game, Maya scored her first goal! Her whole team cheered for her. Maya learned that practice makes you better. She also learned that trying hard is more important than being perfect. Now Maya loves playing soccer and she never wants to stop.',
+  },
+
+  // PASSAGE 3: Space and Planets (5 questions)
+  {
+    id: 'g2-read-11',
+    category: 'reading',
+    difficulty: 'easy',
+    question: 'What is this passage mainly about?',
+    options: ['How rockets work', 'Different planets in our solar system', 'Why Earth has seasons', 'How to become an astronaut'],
+    correctIndex: 1,
+    explanation: 'The passage describes several different planets and their unique characteristics.',
+    ageMin: 7,
+    ageMax: 8,
+    passage: 'Our solar system has eight planets that orbit around the Sun. Mercury is the closest planet to the Sun. It is very hot during the day and very cold at night. Venus is covered in thick clouds. It is the hottest planet even though Mercury is closer to the Sun! Earth is our home planet. It is the only planet we know that has life. It has water, air, and the perfect temperature for plants and animals. Mars is called the Red Planet because its soil looks red and rusty. Scientists are studying Mars to learn if people could live there someday. Jupiter is the biggest planet. It is so large that more than 1,000 Earths could fit inside it! Saturn is famous for its beautiful rings made of ice and rock. Space is full of amazing planets waiting to be explored!',
+  },
+
+  {
+    id: 'g2-read-12',
+    category: 'reading',
+    difficulty: 'easy',
+    question: 'Which planet is closest to the Sun?',
+    options: ['Earth', 'Mars', 'Mercury', 'Venus'],
+    correctIndex: 2,
+    explanation: 'The passage says "Mercury is the closest planet to the Sun."',
+    ageMin: 7,
+    ageMax: 8,
+    passage: 'Our solar system has eight planets that orbit around the Sun. Mercury is the closest planet to the Sun. It is very hot during the day and very cold at night. Venus is covered in thick clouds. It is the hottest planet even though Mercury is closer to the Sun! Earth is our home planet. It is the only planet we know that has life. It has water, air, and the perfect temperature for plants and animals. Mars is called the Red Planet because its soil looks red and rusty. Scientists are studying Mars to learn if people could live there someday. Jupiter is the biggest planet. It is so large that more than 1,000 Earths could fit inside it! Saturn is famous for its beautiful rings made of ice and rock. Space is full of amazing planets waiting to be explored!',
+  },
+
+  {
+    id: 'g2-read-13',
+    category: 'reading',
+    difficulty: 'medium',
+    question: 'Why is Mars called the Red Planet?',
+    options: ['It is very hot', 'Its soil looks red and rusty', 'It has red clouds', 'It is covered in red ice'],
+    correctIndex: 1,
+    explanation: 'The passage explains "Mars is called the Red Planet because its soil looks red and rusty."',
+    ageMin: 7,
+    ageMax: 8,
+    passage: 'Our solar system has eight planets that orbit around the Sun. Mercury is the closest planet to the Sun. It is very hot during the day and very cold at night. Venus is covered in thick clouds. It is the hottest planet even though Mercury is closer to the Sun! Earth is our home planet. It is the only planet we know that has life. It has water, air, and the perfect temperature for plants and animals. Mars is called the Red Planet because its soil looks red and rusty. Scientists are studying Mars to learn if people could live there someday. Jupiter is the biggest planet. It is so large that more than 1,000 Earths could fit inside it! Saturn is famous for its beautiful rings made of ice and rock. Space is full of amazing planets waiting to be explored!',
+  },
+
+  {
+    id: 'g2-read-14',
+    category: 'reading',
+    difficulty: 'medium',
+    question: 'What makes Earth special compared to other planets?',
+    options: ['It is the biggest', 'It has rings', 'It is the only planet we know that has life', 'It is closest to the Sun'],
+    correctIndex: 2,
+    explanation: 'The passage states "Earth is the only planet we know that has life."',
+    ageMin: 7,
+    ageMax: 8,
+    passage: 'Our solar system has eight planets that orbit around the Sun. Mercury is the closest planet to the Sun. It is very hot during the day and very cold at night. Venus is covered in thick clouds. It is the hottest planet even though Mercury is closer to the Sun! Earth is our home planet. It is the only planet we know that has life. It has water, air, and the perfect temperature for plants and animals. Mars is called the Red Planet because its soil looks red and rusty. Scientists are studying Mars to learn if people could live there someday. Jupiter is the biggest planet. It is so large that more than 1,000 Earths could fit inside it! Saturn is famous for its beautiful rings made of ice and rock. Space is full of amazing planets waiting to be explored!',
+  },
+
+  {
+    id: 'g2-read-15',
+    category: 'reading',
+    difficulty: 'hard',
+    question: 'Based on the passage, why might Venus be hotter than Mercury even though Mercury is closer to the Sun?',
+    options: ['Venus is bigger than Mercury', 'The thick clouds on Venus trap heat', 'Venus spins faster', 'Mercury is actually hotter'],
+    correctIndex: 1,
+    explanation: 'While the passage does not directly state this, it mentions Venus is "covered in thick clouds" and is "the hottest planet," suggesting the clouds trap heat.',
+    ageMin: 7,
+    ageMax: 8,
+    passage: 'Our solar system has eight planets that orbit around the Sun. Mercury is the closest planet to the Sun. It is very hot during the day and very cold at night. Venus is covered in thick clouds. It is the hottest planet even though Mercury is closer to the Sun! Earth is our home planet. It is the only planet we know that has life. It has water, air, and the perfect temperature for plants and animals. Mars is called the Red Planet because its soil looks red and rusty. Scientists are studying Mars to learn if people could live there someday. Jupiter is the biggest planet. It is so large that more than 1,000 Earths could fit inside it! Saturn is famous for its beautiful rings made of ice and rock. Space is full of amazing planets waiting to be explored!',
+  },
+
+  // ========================================
+  // SPELLING QUESTIONS (10 total)
+  // Long vowels, silent-e, word families
+  // ========================================
+
+  {
+    id: 'g2-spell-1',
+    category: 'spelling',
+    difficulty: 'easy',
+    question: 'Which word is spelled correctly?',
+    options: ['caik', 'cak', 'cake', 'kaik'],
+    correctIndex: 2,
+    explanation: 'The correct spelling is "cake" with a silent e at the end that makes the a say its name.',
+    ageMin: 7,
+    ageMax: 8,
+  },
+
+  {
+    id: 'g2-spell-2',
+    category: 'spelling',
+    difficulty: 'easy',
+    question: 'Which word is spelled correctly?',
+    options: ['rane', 'rain', 'rayn', 'ran'],
+    correctIndex: 1,
+    explanation: 'The correct spelling is "rain" using the ai vowel team to make the long a sound.',
+    ageMin: 7,
+    ageMax: 8,
+  },
+
+  {
+    id: 'g2-spell-3',
+    category: 'spelling',
+    difficulty: 'easy',
+    question: 'Which word is spelled correctly?',
+    options: ['hoap', 'hop', 'hope', 'hoep'],
+    correctIndex: 2,
+    explanation: 'The correct spelling is "hope" with a silent e that makes the o say its name.',
+    ageMin: 7,
+    ageMax: 8,
+  },
+
+  {
+    id: 'g2-spell-4',
+    category: 'spelling',
+    difficulty: 'medium',
+    question: 'Which word is spelled correctly?',
+    options: ['beech', 'bech', 'beach', 'beatch'],
+    correctIndex: 2,
+    explanation: 'The correct spelling is "beach" using the ea vowel team to make the long e sound.',
+    ageMin: 7,
+    ageMax: 8,
+  },
+
+  {
+    id: 'g2-spell-5',
+    category: 'spelling',
+    difficulty: 'medium',
+    question: 'Which word is spelled correctly?',
+    options: ['nite', 'knite', 'night', 'nigt'],
+    correctIndex: 2,
+    explanation: 'The correct spelling is "night" with the igh pattern making the long i sound.',
+    ageMin: 7,
+    ageMax: 8,
+  },
+
+  {
+    id: 'g2-spell-6',
+    category: 'spelling',
+    difficulty: 'medium',
+    question: 'Which word is spelled correctly?',
+    options: ['trane', 'tran', 'train', 'trayn'],
+    correctIndex: 2,
+    explanation: 'The correct spelling is "train" using the ai vowel team.',
+    ageMin: 7,
+    ageMax: 8,
+  },
+
+  {
+    id: 'g2-spell-7',
+    category: 'spelling',
+    difficulty: 'hard',
+    question: 'Which word is spelled correctly?',
+    options: ['butterflie', 'butterflye', 'butterfly', 'butterfli'],
+    correctIndex: 2,
+    explanation: 'The correct spelling is "butterfly" with a y at the end making the long e sound.',
+    ageMin: 7,
+    ageMax: 8,
+  },
+
+  {
+    id: 'g2-spell-8',
+    category: 'spelling',
+    difficulty: 'hard',
+    question: 'Which word is spelled correctly?',
+    options: ['becuz', 'becuase', 'because', 'becaus'],
+    correctIndex: 2,
+    explanation: 'The correct spelling is "because" - this is a tricky word to remember!',
+    ageMin: 7,
+    ageMax: 8,
+  },
+
+  {
+    id: 'g2-spell-9',
+    category: 'spelling',
+    difficulty: 'hard',
+    question: 'Which word is spelled correctly?',
+    options: ['throu', 'threw', 'throw', 'thro'],
+    correctIndex: 2,
+    explanation: 'The correct spelling is "throw" using the ow pattern.',
+    ageMin: 7,
+    ageMax: 8,
+  },
+
+  {
+    id: 'g2-spell-10',
+    category: 'spelling',
+    difficulty: 'hard',
+    question: 'Which word is spelled correctly?',
+    options: ['happy', 'happie', 'hapie', 'happey'],
+    correctIndex: 0,
+    explanation: 'The correct spelling is "happy" with a double p and y at the end.',
+    ageMin: 7,
+    ageMax: 8,
+  },
+
+  // ========================================
+  // SCIENCE QUESTIONS (5 total)
+  // States of matter, habitats, life cycles
+  // ========================================
+
+  {
+    id: 'g2-science-1',
+    category: 'science',
+    difficulty: 'easy',
+    question: 'Which of these is a liquid?',
+    options: ['Ice cube', 'Water in a glass', 'A rock', 'Air'],
+    correctIndex: 1,
+    explanation: 'Water in a glass is a liquid. Liquids can be poured and take the shape of their container.',
+    ageMin: 7,
+    ageMax: 8,
+  },
+
+  {
+    id: 'g2-science-2',
+    category: 'science',
+    difficulty: 'medium',
+    question: 'What happens when you heat ice?',
+    options: ['It stays the same', 'It turns into water', 'It turns into air', 'It gets harder'],
+    correctIndex: 1,
+    explanation: 'When ice (a solid) is heated, it melts and turns into water (a liquid).',
+    ageMin: 7,
+    ageMax: 8,
+  },
+
+  {
+    id: 'g2-science-3',
+    category: 'science',
+    difficulty: 'medium',
+    question: 'Where would you most likely find a polar bear living?',
+    options: ['In the desert', 'In the Arctic with ice and snow', 'In the jungle', 'In the ocean'],
+    correctIndex: 1,
+    explanation: 'Polar bears live in the Arctic where it is cold with lots of ice and snow. This is their natural habitat.',
+    ageMin: 7,
+    ageMax: 8,
+  },
+
+  {
+    id: 'g2-science-4',
+    category: 'science',
+    difficulty: 'hard',
+    question: 'All living things go through a life cycle. What are the stages in order?',
+    options: ['Death, birth, growth, reproduction', 'Birth, growth, reproduction, death', 'Growth, birth, death, reproduction', 'Reproduction, death, birth, growth'],
+    correctIndex: 1,
+    explanation: 'All living things follow the same life cycle: birth (start of life), growth (getting bigger), reproduction (making new living things), and death (end of life).',
+    ageMin: 7,
+    ageMax: 8,
+  },
+
+  {
+    id: 'g2-science-5',
+    category: 'science',
+    difficulty: 'hard',
+    question: 'A caterpillar builds a cocoon and later comes out as a butterfly. What stage of the life cycle is this?',
+    options: ['Birth', 'Growth', 'Reproduction', 'Death'],
+    correctIndex: 1,
+    explanation: 'This is the growth stage. The caterpillar is growing and changing (metamorphosis) into an adult butterfly.',
+    ageMin: 7,
+    ageMax: 8,
+  },
+]

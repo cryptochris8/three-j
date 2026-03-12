@@ -18,8 +18,8 @@ export const BOWLING_CONFIG = {
   // Pins
   pinHeight: 0.38,
   pinRadius: 0.06,
-  pinMass: 1.5,
-  pinRestitution: 0.4,
+  pinMass: 0.8,
+  pinRestitution: 0.6,
   pinSpacing: 0.30,
   pinStartZ: -7,
 

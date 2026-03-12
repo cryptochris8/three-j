@@ -5,6 +5,7 @@ import { Text } from '@react-three/drei'
 import * as THREE from 'three'
 import { Quaternion, Euler } from 'three'
 import type { HoleConfig } from './config'
+import { MINIGOLF_CONFIG } from './config'
 
 interface CourseProps {
   hole: HoleConfig
@@ -212,15 +213,23 @@ export function Course({ hole, onBallInHole, onWaterHazard }: CourseProps) {
         </mesh>
       </RigidBody>
 
-      {/* Walls */}
-      {hole.walls.map((wall, i) => (
-        <RigidBody key={i} type="fixed" colliders="cuboid" restitution={0.6}>
-          <mesh position={wall.position} rotation={wall.rotation ?? [0, 0, 0]} castShadow>
-            <boxGeometry args={wall.size} />
-            <meshStandardMaterial color={themeColor} roughness={0.7} />
-          </mesh>
-        </RigidBody>
-      ))}
+      {/* Walls — enforce minimum height to contain airborne balls from ramps */}
+      {hole.walls.map((wall, i) => {
+        const minH = MINIGOLF_CONFIG.boundaryWallHeight
+        const h = Math.max(wall.size[1], minH)
+        return (
+          <RigidBody key={i} type="fixed" colliders="cuboid" restitution={0.6}>
+            <mesh
+              position={[wall.position[0], h / 2, wall.position[2]]}
+              rotation={wall.rotation ?? [0, 0, 0]}
+              castShadow
+            >
+              <boxGeometry args={[wall.size[0], h, wall.size[2]]} />
+              <meshStandardMaterial color={themeColor} roughness={0.7} />
+            </mesh>
+          </RigidBody>
+        )
+      })}
 
       {/* Tee marker at starting position */}
       <TeeMarker position={hole.teePosition} />

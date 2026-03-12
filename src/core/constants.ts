@@ -53,7 +53,7 @@ export const TIMING = {
   soccerKicks: 5,
   bowlingFrames: 10,
   golfHoles: 9,
-  quizTimeSeconds: 15,
+  quizTimeSeconds: 20,
   powerMeterSpeed: 2.0,
 } as const
 
@@ -64,6 +64,7 @@ export const STAR_THRESHOLDS = {
   bowling: { one: 30, two: 70, three: 120 } as const,
   minigolf: { one: 45, two: 36, three: 27 } as const, // Lower is better
   archery: { one: 30, two: 75, three: 150 } as const,
+  football: { one: 30, two: 75, three: 150 } as const,
 } as const
 
 // Camera defaults
@@ -82,11 +83,19 @@ export const HUB = {
   playerHeight: 1.8,
   cameraOffset: [0, 8, 12] as [number, number, number],
   cameraLookAhead: 2,
-  cameraDistance: 5,
-  cameraPitchMin: 0.1,
-  cameraPitchMax: 0.8,
-  cameraPitchDefault: 0.35,
-  mouseSensitivity: 0.002,
+  cameraDistance: 7,
+  cameraPitchMin: 0.2,
+  cameraPitchMax: 1.2,
+  cameraPitchDefault: 0.4,
+  mouseSensitivity: 0.003,
+  cameraLerpSpeed: 0.3,
+  movingCameraLerpSpeed: 0.5,
+  jumpVelocity: 8,
+  gravity: 20,
+  groundY: 0,
+  facingLerpSpeed: 0.25,
+  cameraHeightOffset: 1.5,
+  idleFacingLerpSpeed: 0.04,
   npcInteractDistance: 4,
   npcs: [
     { game: 'basketball' as const, label: 'Basketball', position: [-15, 0, -10] as [number, number, number], color: '#FF6B35', skinUrl: '/skins/npc-basketball.png' },
@@ -94,6 +103,7 @@ export const HUB = {
     { game: 'bowling' as const,    label: 'Bowling',     position: [-15, 0, 10] as [number, number, number], color: '#2196F3', skinUrl: '/skins/npc-bowling.png' },
     { game: 'minigolf' as const,   label: 'Mini-Golf',   position: [15, 0, 10] as [number, number, number],  color: '#9C27B0', skinUrl: '/skins/npc-minigolf.png' },
     { game: 'archery' as const,    label: 'Archery',     position: [0, 0, -20] as [number, number, number],  color: '#E74C3C', skinUrl: '/skins/npc-basketball.png' },
+    { game: 'football' as const,   label: 'Football',    position: [-8, 0, -20] as [number, number, number], color: '#FF6B35', skinUrl: '/skins/npc-football.png' },
   ],
 } as const
 

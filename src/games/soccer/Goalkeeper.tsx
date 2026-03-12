@@ -90,12 +90,14 @@ export function Goalkeeper({ difficulty, ballAimX, ballAimY, isBallKicked, isSlo
         meshGroupRef.current.rotation.z = THREE.MathUtils.lerp(meshGroupRef.current.rotation.z, tilt, 0.1)
       }
     } else if (!isBallKicked) {
-      // Idle sway
+      // Idle sway — always lerp back to start Y/Z so the keeper doesn't
+      // stay stuck at the dive height after a goal is scored.
+      const [startX, startY, startZ] = SOCCER_CONFIG.keeperStartPosition
       const sway = Math.sin(state.clock.elapsedTime * 2) * 0.3
       bodyRef.current.setNextKinematicTranslation({
         x: sway,
-        y: pos.y,
-        z: pos.z,
+        y: THREE.MathUtils.lerp(pos.y, startY, 0.15),
+        z: startZ,
       })
 
       // Reset visual rotation when idle

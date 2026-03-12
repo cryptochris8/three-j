@@ -57,7 +57,7 @@ export function SoccerOverlay() {
           Kick {currentKick}/{effectiveTotalKicks}
         </div>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '0.7rem', opacity: 0.6 }}>OPP</div>
+          <div style={{ fontSize: '0.7rem', opacity: 0.6 }}>GK</div>
           <div style={{ fontSize: '2rem', fontWeight: 700, color: '#E74C3C' }}>{opponentGoals}</div>
         </div>
       </div>

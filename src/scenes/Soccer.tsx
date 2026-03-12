@@ -244,12 +244,15 @@ function SoccerGame() {
     aimY,
     lastResult,
     keeperSlowed,
-    simulateOpponent,
     nextKick,
     resetGame,
   } = useSoccer()
 
   const { popups, showConfetti, addPopup, removePopup, triggerConfetti, triggerQuiz, endGame } = useGameScene('soccer', () => resetGame(soccerConfig.totalKicks))
+
+  // Stable ref for triggerQuiz to avoid stale closures and dependency re-triggers
+  const triggerQuizRef = useRef(triggerQuiz)
+  triggerQuizRef.current = triggerQuiz
 
   const [reactionAnim, setReactionAnim] = useState<AnimationState | null>(null)
   const prevPhaseRef = useRef(soccerPhase)
@@ -307,7 +310,7 @@ function SoccerGame() {
         audioManager.playVoice('goal')
         triggerConfetti()
       } else if (lastResult === 'saved') {
-        text = 'Saved!'
+        text = 'Saved! GK +1'
         color = '#E74C3C'
         audioManager.playVoice('greatSave')
       } else {
@@ -316,18 +319,11 @@ function SoccerGame() {
         audioManager.play('whistle')
       }
 
-      const opScored = simulateOpponent()
-      if (opScored) {
-        setTimeout(() => {
-          addPopup('Opponent scores!', [0, 1, -5], '#E74C3C')
-        }, 1500)
-      }
-
       addPopup(text, [0, 3, -5], color)
 
       setTimeout(() => {
         if (currentKick % 2 === 0 && currentKick < soccerConfig.totalKicks) {
-          triggerQuiz()
+          triggerQuizRef.current()
         } else {
           nextKick()
         }
@@ -338,7 +334,7 @@ function SoccerGame() {
     if (soccerPhase !== 'result') {
       resultHandled.current = false
     }
-  }, [soccerPhase, lastResult, addScore, simulateOpponent, currentKick, triggerConfetti, addPopup, triggerQuiz, nextKick])
+  }, [soccerPhase, lastResult, addScore, currentKick, triggerConfetti, addPopup, nextKick]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Game over
   useEffect(() => {

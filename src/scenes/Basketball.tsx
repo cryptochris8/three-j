@@ -109,17 +109,38 @@ function BasketballGame() {
     }
   }, [shotsRemaining, isBallFlying, gamePhase, endGame])
 
-  // Track shots for quiz trigger
+  // Track shots for quiz trigger — wait for shot result + delay
+  // so the player can see score/miss feedback before the quiz appears.
+  // Use a ref for triggerQuiz to avoid re-triggering when its identity changes.
+  const triggerQuizRef = useRef(triggerQuiz)
+  triggerQuizRef.current = triggerQuiz
+
+  // Store quiz timer in a ref so it survives effect re-runs.
+  // Without this, resetBall() setting shotResult=null would re-run the effect
+  // and the cleanup would cancel the pending quiz timer before it fires.
+  const quizTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   useEffect(() => {
+    if (!shotResult || gamePhase !== 'playing') return
     const totalShots = config.totalShots
     const currentShot = totalShots - shotsRemaining
-    if (currentShot > 0 && currentShot % 3 === 0 && gamePhase === 'playing' && !isBallFlying) {
-      if (currentShot !== shotCount.current) {
-        shotCount.current = currentShot
-        triggerQuiz()
-      }
+    if (currentShot > 0 && currentShot % 3 === 0 && currentShot !== shotCount.current) {
+      shotCount.current = currentShot
+      if (quizTimerRef.current) clearTimeout(quizTimerRef.current)
+      // 2.5s delay lets the player see the score popup, confetti, and celebration
+      quizTimerRef.current = setTimeout(() => {
+        quizTimerRef.current = null
+        triggerQuizRef.current()
+      }, 2500)
     }
-  }, [shotsRemaining, gamePhase, isBallFlying, triggerQuiz])
+  }, [shotResult, shotsRemaining, gamePhase, config.totalShots])
+
+  // Cleanup quiz timer on unmount only
+  useEffect(() => {
+    return () => {
+      if (quizTimerRef.current) clearTimeout(quizTimerRef.current)
+    }
+  }, [])
 
   // Show "Miss!" popup when a shot misses
   useEffect(() => {

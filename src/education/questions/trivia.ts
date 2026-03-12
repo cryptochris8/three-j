@@ -169,9 +169,9 @@ const TRIVIA_QUESTIONS: Question[] = [
   },
   {
     id: 'trivia-24', category: 'trivia', difficulty: 'hard',
-    question: 'Which planet has the most moons?',
+    question: 'Which planet has the most known moons?',
     options: ['Jupiter', 'Saturn', 'Uranus', 'Neptune'], correctIndex: 1,
-    explanation: 'Saturn has the most confirmed moons of any planet.',
+    explanation: 'Saturn has over 140 confirmed moons, more than any other planet.',
     ageMin: 8, ageMax: 10,
   },
 ]

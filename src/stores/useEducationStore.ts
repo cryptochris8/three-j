@@ -35,13 +35,15 @@ export const useEducationStore = create<EducationState>((set, get) => ({
         if (s.difficulty === 'easy') newDifficulty = 'medium'
         else if (s.difficulty === 'medium') newDifficulty = 'hard'
       }
+      // NOTE: Do NOT clear currentQuestion here — the QuizModal needs it
+      // to stay mounted for 3 seconds to show result feedback.
+      // It gets cleared when triggerQuiz sets a new question or on resetSession.
       return {
         streak: newStreak,
         totalCorrect: newCorrect,
         totalAnswered: newTotal,
         difficulty: newDifficulty,
         answeredIds: [...s.answeredIds, questionId],
-        currentQuestion: null,
       }
     }),
 
@@ -54,12 +56,12 @@ export const useEducationStore = create<EducationState>((set, get) => ({
         if (s.difficulty === 'hard') newDifficulty = 'medium'
         else if (s.difficulty === 'medium') newDifficulty = 'easy'
       }
+      // NOTE: Do NOT clear currentQuestion here — same reason as answerCorrect.
       return {
         streak: wrongsInRow,
         totalAnswered: newTotal,
         difficulty: newDifficulty,
         answeredIds: [...s.answeredIds, questionId],
-        currentQuestion: null,
       }
     }),
 
