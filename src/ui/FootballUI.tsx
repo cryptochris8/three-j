@@ -10,6 +10,7 @@ export function FootballOverlay() {
   const timeRemaining = useFootball((s) => s.timeRemaining)
   const shotsFired = useFootball((s) => s.shotsFired)
   const targetsHit = useFootball((s) => s.targetsHit)
+  const interceptions = useFootball((s) => s.interceptions)
   const resetGame = useFootball((s) => s.resetGame)
   const power = useFootball((s) => s.power)
   const isPowerCharging = useFootball((s) => s.isPowerCharging)
@@ -67,6 +68,18 @@ export function FootballOverlay() {
             <div style={{ fontSize: '1.2rem', fontWeight: 600 }}>
               {Math.round((targetsHit / shotsFired) * 100)}%
             </div>
+          </div>
+        )}
+        {interceptions > 0 && (
+          <div style={{
+            background: 'rgba(0,0,0,0.6)',
+            borderRadius: '12px',
+            padding: '0.4rem 0.8rem',
+            backdropFilter: 'blur(8px)',
+            textAlign: 'center',
+          }}>
+            <div style={{ fontSize: '0.65rem', opacity: 0.7, color: '#E74C3C' }}>INT</div>
+            <div style={{ fontSize: '1.2rem', fontWeight: 600, color: '#E74C3C' }}>{interceptions}</div>
           </div>
         )}
       </div>

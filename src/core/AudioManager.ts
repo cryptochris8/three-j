@@ -22,6 +22,7 @@ type SoundName =
   | 'confetti'
   | 'arrowShoot'
   | 'targetHit'
+  | 'interception'
 
 type VoiceName =
   | 'welcome'

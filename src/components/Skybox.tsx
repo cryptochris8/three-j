@@ -58,6 +58,7 @@ export const SKYBOX_CONFIG: Record<string, {
     backgroundIntensity: 1,
   },
   football: {
+    file: 'football.jpg',
     preset: 'park',
     backgroundBlurriness: 0,
     backgroundIntensity: 1,

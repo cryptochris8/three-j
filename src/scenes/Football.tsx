@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef, useState, useMemo } from 'react'
+import { useEffect, useCallback, useRef, useState, useMemo, createRef } from 'react'
 import { useThree, useFrame, type ThreeEvent } from '@react-three/fiber'
 import { Skybox } from '@/components/Skybox'
 import { useGameStore } from '@/stores/useGameStore'
@@ -6,8 +6,9 @@ import { useScoreStore } from '@/stores/useScoreStore'
 import { Field } from '@/games/football/Field'
 import { FootballTargetSpawner } from '@/games/football/TargetSpawner'
 import { useFootball } from '@/games/football/useFootball'
-import { FOOTBALL_CONFIG, getFootballConfig } from '@/games/football/config'
+import { FOOTBALL_CONFIG, getFootballConfig, getFootballDefenders, DEFENDER_CONFIG } from '@/games/football/config'
 import { FootballProjectile } from '@/games/football/FootballProjectile'
+import { DefenderBlocker, type DefenderHandle } from '@/games/football/DefenderBlocker'
 import { ScorePopup } from '@/components/ScorePopup'
 import { Confetti } from '@/components/Confetti'
 import { ParticleExplosion } from '@/components/ParticleExplosion'
@@ -49,12 +50,20 @@ function FootballGame() {
     shoot,
     registerHit,
     registerMiss,
+    registerInterception,
     startCharging,
     setPower,
     releaseShot,
     isPowerCharging,
     resetGame,
   } = useFootball()
+
+  // Defenders
+  const defenderLanes = useMemo(() => getFootballDefenders(selectedDifficulty), [selectedDifficulty])
+  const defenderRefs = useMemo(
+    () => defenderLanes.map(() => createRef<DefenderHandle>()),
+    [defenderLanes]
+  )
 
   const prevShotsFired = useRef(0)
   const [shakeActive, setShakeActive] = useState(false)
@@ -75,6 +84,7 @@ function FootballGame() {
     if (shotResult === 'hit') {
       setReactionAnim('celebrate')
     } else {
+      // Both 'miss' and 'interception' show disappointed
       setReactionAnim('disappointed')
     }
     const timer = setTimeout(() => setReactionAnim(null), 2000)
@@ -164,6 +174,24 @@ function FootballGame() {
     pendingShotRef.current = { type: 'miss', position: [p.x, p.y, p.z] }
   }, [gamePhase])
 
+  const registerInterceptionRef = useRef(registerInterception)
+  registerInterceptionRef.current = registerInterception
+
+  // Check if a football position collides with any defender
+  const checkDefenderCollision = useCallback((pos: [number, number, number]): number => {
+    for (let i = 0; i < defenderRefs.length; i++) {
+      const handle = defenderRefs[i].current
+      if (!handle) continue
+      const dPos = handle.getPosition()
+      const dx = pos[0] - dPos[0]
+      const dy = pos[1] - dPos[1]
+      const dz = pos[2] - dPos[2]
+      const dist = Math.sqrt(dx * dx + dy * dy + dz * dz)
+      if (dist < DEFENDER_CONFIG.collisionRadius) return i
+    }
+    return -1
+  }, [defenderRefs])
+
   // Refs for stable access in onComplete callback without stale closures
   const addScoreRef = useRef(addScore)
   addScoreRef.current = addScore
@@ -244,6 +272,30 @@ function FootballGame() {
     }
   }, [])
 
+  // Called when a football is intercepted by a defender
+  const handleInterception = useCallback((football: ActiveFootball) => {
+    setFootballs((prev) => prev.filter((x) => x.id !== football.id))
+    registerInterceptionRef.current()
+    resetStreakRef.current()
+    audioManager.play('interception')
+
+    // Find which defender intercepted and trigger their celebrate
+    const pos = football.end
+    for (let i = 0; i < defenderRefs.length; i++) {
+      const handle = defenderRefs[i].current
+      if (!handle) continue
+      const dPos = handle.getPosition()
+      const dx = pos[0] - dPos[0]
+      const dz = pos[2] - dPos[2]
+      if (Math.sqrt(dx * dx + dz * dz) < DEFENDER_CONFIG.collisionRadius * 2) {
+        handle.triggerCelebrate()
+        break
+      }
+    }
+
+    addPopupRef.current('INTERCEPTED!', [pos[0], pos[1] + 1, pos[2]], '#E74C3C')
+  }, [defenderRefs])
+
   // Window pointerUp → launch the football; scoring deferred to arrival
   useEffect(() => {
     const handlePointerUp = () => {
@@ -307,12 +359,24 @@ function FootballGame() {
         onTargetHit={handleTargetHit}
       />
 
+      {/* Defender blockers */}
+      {defenderLanes.map((lane, i) => (
+        <DefenderBlocker
+          key={`defender-${lane.z}`}
+          ref={defenderRefs[i]}
+          lane={lane}
+          paused={gamePhase !== 'playing'}
+        />
+      ))}
+
       {footballs.map((f) => (
         <FootballProjectile
           key={f.id}
           startPosition={f.start}
           endPosition={f.end}
           onComplete={() => handleFootballArrival(f)}
+          onIntercepted={() => handleInterception(f)}
+          checkDefenderCollision={checkDefenderCollision}
         />
       ))}
 

@@ -30,6 +30,27 @@ export const FOOTBALL_TARGET_TYPES: FootballTargetType[] = [
   { id: 'defender-4', color: '#E67E22', points: 25, speed: 7.0, size: 0.7, weight: 5,  label: 'MVP',        skinUrl: '/skins/football/defender_10.png', modelScale: 1.4 },
 ]
 
+export interface DefenderLane {
+  z: number
+  speed: number
+  direction: 1 | -1
+  skinUrl: string
+}
+
+export const DEFENDER_SKINS = [
+  '/skins/football/defender_3.png',
+  '/skins/football/defender_4.png',
+  '/skins/football/defender_6.png',
+  '/skins/football/defender_7.png',
+]
+
+export const DEFENDER_CONFIG = {
+  scale: 1.8,
+  collisionRadius: 1.0,
+  patrolWidth: 12,
+  celebrateDuration: 1.5,
+} as const
+
 export const FOOTBALL_CONFIG = {
   // Field dimensions
   fieldWidth: 30,
@@ -79,6 +100,25 @@ export function pickFootballTarget(): FootballTargetType {
     if (roll <= 0) return t
   }
   return FOOTBALL_TARGET_TYPES[0]
+}
+
+export function getFootballDefenders(difficulty: Difficulty): DefenderLane[] {
+  const configs: Record<Difficulty, DefenderLane[]> = {
+    easy: [
+      { z: -4, speed: 2.0, direction: 1, skinUrl: DEFENDER_SKINS[0] },
+    ],
+    medium: [
+      { z: -3, speed: 2.5, direction: 1, skinUrl: DEFENDER_SKINS[0] },
+      { z: -8, speed: 3.0, direction: -1, skinUrl: DEFENDER_SKINS[1] },
+    ],
+    hard: [
+      { z: -2, speed: 3.0, direction: 1, skinUrl: DEFENDER_SKINS[0] },
+      { z: -6, speed: 3.5, direction: -1, skinUrl: DEFENDER_SKINS[1] },
+      { z: -10, speed: 4.0, direction: 1, skinUrl: DEFENDER_SKINS[2] },
+      { z: -14, speed: 4.5, direction: -1, skinUrl: DEFENDER_SKINS[3] },
+    ],
+  }
+  return configs[difficulty]
 }
 
 export function getFootballConfig(difficulty: Difficulty) {

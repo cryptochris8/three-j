@@ -9,6 +9,8 @@ interface FootballProjectileProps {
   startPosition: [number, number, number]
   endPosition: [number, number, number]
   onComplete: () => void
+  onIntercepted?: () => void
+  checkDefenderCollision?: (pos: [number, number, number]) => number
 }
 
 const FLIGHT_DURATION = 0.35
@@ -19,7 +21,7 @@ const _tangent = new THREE.Vector3()
 const _footballLongAxis = new THREE.Vector3(1, 0, 0)
 const _alignQuat = new THREE.Quaternion()
 
-export function FootballProjectile({ startPosition, endPosition, onComplete }: FootballProjectileProps) {
+export function FootballProjectile({ startPosition, endPosition, onComplete, onIntercepted, checkDefenderCollision }: FootballProjectileProps) {
   const { scene } = useGLTF('/models/football/scene.gltf')
   const groupRef = useRef<THREE.Group>(null)
   const elapsedRef = useRef(0)
@@ -60,6 +62,16 @@ export function FootballProjectile({ startPosition, endPosition, onComplete }: F
 
     // Add spiral rotation around the football's local long axis (+X)
     group.rotateOnAxis(_footballLongAxis, SPIRAL_SPEED * delta)
+
+    // Check collision with defenders
+    if (!completedRef.current && checkDefenderCollision && onIntercepted) {
+      const hitIdx = checkDefenderCollision([group.position.x, group.position.y, group.position.z])
+      if (hitIdx >= 0) {
+        completedRef.current = true
+        onIntercepted()
+        return
+      }
+    }
 
     if (t >= 1 && !completedRef.current) {
       completedRef.current = true

@@ -1,3 +1,4 @@
+import { useTexture } from '@react-three/drei'
 import { FOOTBALL_CONFIG } from './config'
 
 export function Field() {
@@ -27,41 +28,64 @@ export function Field() {
         </mesh>
       ))}
 
+      {/* Midfield logo */}
+      <MidfieldLogo position={[0, 0.02, -3]} />
+
       {/* End zone area */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.005, -fieldDepth + 10]}>
         <planeGeometry args={[fieldWidth - 2, 8]} />
         <meshStandardMaterial color="#2d6b2f" roughness={0.9} />
       </mesh>
 
-      {/* Simple goal posts at far end */}
+      {/* NFL-style goal posts at far end */}
       <GoalPosts position={[0, 0, -fieldDepth + 8]} />
     </group>
+  )
+}
+
+function MidfieldLogo({ position }: { position: [number, number, number] }) {
+  const texture = useTexture('/logos/Logo.jpg')
+  texture.anisotropy = 16
+  texture.needsUpdate = true
+
+  return (
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={position}>
+      <planeGeometry args={[6, 6]} />
+      <meshStandardMaterial map={texture} transparent roughness={0.8} />
+    </mesh>
   )
 }
 
 function GoalPosts({ position }: { position: [number, number, number] }) {
   const postColor = '#FFD700'
   const postRadius = 0.06
+  const crossbarHeight = 3
+  const uprightHeight = 5
+  const crossbarWidth = 5
+
   return (
     <group position={position}>
-      {/* Left upright */}
-      <mesh position={[-2.5, 4, 0]} castShadow>
-        <cylinderGeometry args={[postRadius, postRadius, 8, 8]} />
+      {/* Single center support pole from ground to crossbar */}
+      <mesh position={[0, crossbarHeight / 2, 0]} castShadow>
+        <cylinderGeometry args={[postRadius * 1.5, postRadius * 1.5, crossbarHeight, 8]} />
         <meshStandardMaterial color={postColor} metalness={0.6} roughness={0.3} />
       </mesh>
-      {/* Right upright */}
-      <mesh position={[2.5, 4, 0]} castShadow>
-        <cylinderGeometry args={[postRadius, postRadius, 8, 8]} />
-        <meshStandardMaterial color={postColor} metalness={0.6} roughness={0.3} />
-      </mesh>
+
       {/* Crossbar */}
-      <mesh position={[0, 3, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
-        <cylinderGeometry args={[postRadius, postRadius, 5, 8]} />
+      <mesh position={[0, crossbarHeight, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
+        <cylinderGeometry args={[postRadius, postRadius, crossbarWidth, 8]} />
         <meshStandardMaterial color={postColor} metalness={0.6} roughness={0.3} />
       </mesh>
-      {/* Center support post */}
-      <mesh position={[0, 1.5, 0]} castShadow>
-        <cylinderGeometry args={[postRadius * 1.5, postRadius * 1.5, 3, 8]} />
+
+      {/* Left upright above crossbar */}
+      <mesh position={[-crossbarWidth / 2, crossbarHeight + uprightHeight / 2, 0]} castShadow>
+        <cylinderGeometry args={[postRadius, postRadius, uprightHeight, 8]} />
+        <meshStandardMaterial color={postColor} metalness={0.6} roughness={0.3} />
+      </mesh>
+
+      {/* Right upright above crossbar */}
+      <mesh position={[crossbarWidth / 2, crossbarHeight + uprightHeight / 2, 0]} castShadow>
+        <cylinderGeometry args={[postRadius, postRadius, uprightHeight, 8]} />
         <meshStandardMaterial color={postColor} metalness={0.6} roughness={0.3} />
       </mesh>
     </group>
