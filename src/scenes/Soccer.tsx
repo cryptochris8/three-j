@@ -210,7 +210,9 @@ function SoccerBall() {
         colliders="ball"
         mass={SOCCER_CONFIG.ballMass}
         restitution={SOCCER_CONFIG.ballRestitution}
-        linearDamping={0.3}
+        linearDamping={SOCCER_CONFIG.ballLinearDamping}
+        angularDamping={SOCCER_CONFIG.ballAngularDamping}
+        friction={SOCCER_CONFIG.ballFriction}
         position={SOCCER_CONFIG.ballStartPosition}
         name="soccerball"
       >
@@ -307,16 +309,22 @@ function SoccerGame() {
         color = '#2ECC71'
         addScore(1)
         audioManager.play('goalCheer')
-        audioManager.playVoice('goal')
+        audioManager.play('goalReaction')
+        // Pick a random goal announcer line
+        const goalVoices = ['whatAGoal', 'whatABeauty', 'crowdGoesWild'] as const
+        audioManager.playVoice(goalVoices[Math.floor(Math.random() * goalVoices.length)])
         triggerConfetti()
       } else if (lastResult === 'saved') {
         text = 'Saved! GK +1'
         color = '#E74C3C'
-        audioManager.playVoice('greatSave')
+        const saveVoices = ['beautifulSave', 'greatSave'] as const
+        audioManager.playVoice(saveVoices[Math.floor(Math.random() * saveVoices.length)])
       } else {
         text = 'Wide!'
         color = '#888'
         audioManager.play('whistle')
+        const missVoices = ['nearMiss', 'soClose'] as const
+        audioManager.playVoice(missVoices[Math.floor(Math.random() * missVoices.length)])
       }
 
       addPopup(text, [0, 3, -5], color)

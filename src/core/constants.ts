@@ -28,8 +28,14 @@ export const PHYSICS = {
   soccer: {
     mass: 0.45,
     restitution: 0.6,
-    linearDamping: 0.4,
+    linearDamping: 0.2,     // Reduced from 0.4 — longer, more natural ball rolls (Gnarly-tested)
+    angularDamping: 2.5,    // Natural ball rotation spin (from Gnarly)
+    friction: 0.35,         // Balanced grip — control without slipping (from Gnarly)
     radius: 0.11,
+    shotForce: 8,           // Base shot force (from Gnarly)
+    tackleForce: 12,        // Tackle/block force (from Gnarly)
+    tackleDurationMs: 600,  // Tackle animation length (from Gnarly)
+    stuckCheckMs: 2000,     // Ball stuck detection interval (from Gnarly)
   },
   bowling: {
     ballMass: 6.0,

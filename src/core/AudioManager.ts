@@ -23,6 +23,13 @@ type SoundName =
   | 'arrowShoot'
   | 'targetHit'
   | 'interception'
+  | 'tackle'
+  | 'countdown'
+  | 'ticking'
+  | 'crowdCheer'
+  | 'crowdChant'
+  | 'goalReaction'
+  | 'stoppageTime'
 
 type VoiceName =
   | 'welcome'
@@ -38,6 +45,17 @@ type VoiceName =
   | 'quizWrong'
   | 'streak'
   | 'bullseye'
+  | 'whatAGoal'
+  | 'beautifulSave'
+  | 'onFire'
+  | 'nearMiss'
+  | 'crowdGoesWild'
+  | 'whatAShot'
+  | 'soClose'
+  | 'whatABeauty'
+  | 'gameStart'
+  | 'itsAllOver'
+  | 'onARoll'
 
 type MusicName = 'menu' | 'hub' | 'basketball' | 'soccer' | 'bowling' | 'minigolf' | 'archery' | 'football'
 

@@ -230,11 +230,13 @@ function FootballGame() {
       if (basePoints >= 20) {
         text = `MVP! ${hitData.label} +${finalMultipliedPoints} ${multiplierText}`
         color = '#9B59B6'
-        audioManager.playVoice('bullseye')
+        audioManager.playVoice('whatAShot')
+        audioManager.play('crowdCheer')
         triggerConfettiRef.current()
       } else if (basePoints >= 10) {
         text = `STAR! ${hitData.label} +${finalMultipliedPoints} ${multiplierText}`
         color = '#E74C3C'
+        audioManager.play('goalReaction')
         triggerConfettiRef.current()
       } else if (basePoints >= 5) {
         text = `GREAT! ${hitData.label} +${finalMultipliedPoints} ${multiplierText}`
@@ -248,7 +250,8 @@ function FootballGame() {
       if (currentStreakNow >= FOOTBALL_CONFIG.streakBonusThreshold) {
         finalPoints *= FOOTBALL_CONFIG.streakBonusMultiplier
         text += ` x2 STREAK!`
-        audioManager.playVoice('streak')
+        const streakVoices = ['onFire', 'onARoll', 'crowdGoesWild'] as const
+        audioManager.playVoice(streakVoices[Math.floor(Math.random() * streakVoices.length)])
         audioManager.play('crowd')
       }
 

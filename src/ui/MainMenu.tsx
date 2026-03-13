@@ -4,9 +4,9 @@ import { useGameStore } from '@/stores/useGameStore'
 import { audioManager } from '@/core/AudioManager'
 import { switchPlayerStores, migrateUnscopedData } from '@/core/playerScoping'
 import { AvatarPicker } from './AvatarPicker'
-import type { GradeLevel, PlayMode } from '@/types'
+import type { GradeLevel, PlayMode, Scene } from '@/types'
 
-type MenuStep = 'mode' | 'grade' | 'avatar'
+type MenuStep = 'mode' | 'openWorldSub' | 'grade' | 'avatar'
 
 const GRADE_INFO: { grade: GradeLevel; label: string; ages: string }[] = [
   { grade: 1, label: 'Grade 1', ages: 'Ages 6-7' },
@@ -30,6 +30,7 @@ export function MainMenu() {
   const [step, setStep] = useState<MenuStep>('mode')
   const [chosenMode, setChosenMode] = useState<PlayMode | null>(null)
   const [chosenGrade, setChosenGrade] = useState<GradeLevel | null>(null)
+  const [openWorldTarget, setOpenWorldTarget] = useState<Scene>('hub')
   const [pickerProfileId, setPickerProfileId] = useState<number | null>(null)
 
   useEffect(() => {
@@ -43,8 +44,14 @@ export function MainMenu() {
     if (mode === 'education') {
       setStep('grade')
     } else {
-      setStep('avatar')
+      setStep('openWorldSub')
     }
+  }
+
+  const handleOpenWorldSubSelect = (target: Scene) => {
+    audioManager.play('click')
+    setOpenWorldTarget(target)
+    setStep('avatar')
   }
 
   const handleGradeSelect = (grade: GradeLevel) => {
@@ -55,7 +62,10 @@ export function MainMenu() {
 
   const handleBack = () => {
     audioManager.play('click')
-    if (step === 'grade') {
+    if (step === 'openWorldSub') {
+      setStep('mode')
+      setChosenMode(null)
+    } else if (step === 'grade') {
       setStep('mode')
       setChosenMode(null)
     } else if (step === 'avatar') {
@@ -63,8 +73,7 @@ export function MainMenu() {
         setStep('grade')
         setChosenGrade(null)
       } else {
-        setStep('mode')
-        setChosenMode(null)
+        setStep('openWorldSub')
       }
     }
   }
@@ -82,7 +91,7 @@ export function MainMenu() {
 
     setPlayMode(chosenMode!)
     setSelectedGrade(chosenMode === 'education' ? chosenGrade : null)
-    setScene('hub')
+    setScene(chosenMode === 'openWorld' ? openWorldTarget : 'hub')
   }
 
   return (
@@ -251,6 +260,140 @@ export function MainMenu() {
         </>
       )}
 
+      {/* Step: Open World Sub-Selection */}
+      {step === 'openWorldSub' && (
+        <>
+          <p style={{
+            fontSize: 'clamp(0.9rem, 2.5vw, 1.2rem)',
+            color: 'rgba(255,255,255,0.85)',
+            marginBottom: '2.5rem',
+            fontWeight: 500,
+            letterSpacing: '3px',
+            textTransform: 'uppercase',
+          }}>
+            Choose Your Experience
+          </p>
+
+          <div
+            role="group"
+            aria-label="Select open world experience"
+            style={{
+              display: 'flex',
+              gap: '2rem',
+              flexWrap: 'wrap',
+              justifyContent: 'center',
+              padding: '0 1rem',
+              position: 'relative',
+              marginBottom: '2rem',
+            }}
+          >
+            {/* Free Roam Hub Card */}
+            <button
+              aria-label="Free Roam Hub"
+              onClick={() => handleOpenWorldSubSelect('hub')}
+              style={{
+                width: '240px',
+                padding: '2rem 1.5rem',
+                borderRadius: '24px',
+                background: 'linear-gradient(135deg, rgba(78,205,196,0.3), rgba(68,207,108,0.3))',
+                color: '#FFFFFF',
+                fontSize: '1rem',
+                fontWeight: 600,
+                border: '3px solid rgba(78,205,196,0.5)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '0.8rem',
+                backdropFilter: 'blur(10px)',
+                boxShadow: '0 8px 32px rgba(78,205,196,0.2)',
+                cursor: 'pointer',
+                transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.05)'
+                e.currentTarget.style.boxShadow = '0 12px 40px rgba(78,205,196,0.4)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)'
+                e.currentTarget.style.boxShadow = '0 8px 32px rgba(78,205,196,0.2)'
+              }}
+            >
+              <span style={{ fontSize: '3rem' }}>🌍</span>
+              <span style={{ fontSize: '1.3rem', fontWeight: 700 }}>Free Roam Hub</span>
+              <span style={{
+                fontSize: '0.85rem',
+                opacity: 0.8,
+                lineHeight: 1.4,
+                textAlign: 'center',
+              }}>
+                Explore &amp; play NPC minigames
+              </span>
+            </button>
+
+            {/* Soccer Match Card */}
+            <button
+              aria-label="Soccer Match"
+              onClick={() => handleOpenWorldSubSelect('soccer-match')}
+              style={{
+                width: '240px',
+                padding: '2rem 1.5rem',
+                borderRadius: '24px',
+                background: 'linear-gradient(135deg, rgba(76,175,80,0.3), rgba(33,150,243,0.3))',
+                color: '#FFFFFF',
+                fontSize: '1rem',
+                fontWeight: 600,
+                border: '3px solid rgba(76,175,80,0.5)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '0.8rem',
+                backdropFilter: 'blur(10px)',
+                boxShadow: '0 8px 32px rgba(76,175,80,0.2)',
+                cursor: 'pointer',
+                transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.05)'
+                e.currentTarget.style.boxShadow = '0 12px 40px rgba(76,175,80,0.4)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)'
+                e.currentTarget.style.boxShadow = '0 8px 32px rgba(76,175,80,0.2)'
+              }}
+            >
+              <span style={{ fontSize: '3rem' }}>🏟️</span>
+              <span style={{ fontSize: '1.3rem', fontWeight: 700 }}>Soccer Match</span>
+              <span style={{
+                fontSize: '0.85rem',
+                opacity: 0.8,
+                lineHeight: 1.4,
+                textAlign: 'center',
+              }}>
+                Full 6v6 match with AI teams
+              </span>
+            </button>
+          </div>
+
+          <button
+            onClick={handleBack}
+            aria-label="Back to mode selection"
+            style={{
+              padding: '0.7rem 2rem',
+              fontSize: '0.9rem',
+              fontWeight: 600,
+              borderRadius: '12px',
+              border: '2px solid rgba(255,255,255,0.3)',
+              background: 'rgba(255,255,255,0.1)',
+              color: 'rgba(255,255,255,0.8)',
+              cursor: 'pointer',
+              backdropFilter: 'blur(5px)',
+            }}
+          >
+            ← Back
+          </button>
+        </>
+      )}
+
       {/* Step: Grade Selection */}
       {step === 'grade' && (
         <>
@@ -349,7 +492,7 @@ export function MainMenu() {
             textTransform: 'uppercase',
           }}>
             {chosenMode === 'openWorld'
-              ? '🎮 Open World'
+              ? openWorldTarget === 'soccer-match' ? '🏟️ Soccer Match' : '🌍 Free Roam Hub'
               : `📚 Education — Grade ${chosenGrade}`}
           </p>
 

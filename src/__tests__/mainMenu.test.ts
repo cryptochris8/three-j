@@ -79,6 +79,47 @@ describe('MainMenu store integration', () => {
   })
 })
 
+describe('Open World sub-selection routing', () => {
+  beforeEach(() => {
+    useGameStore.setState({
+      currentScene: 'menu',
+      gamePhase: 'menu',
+      playMode: 'education',
+      selectedGrade: null,
+    })
+  })
+
+  it('routes to hub scene when Free Roam Hub is selected', () => {
+    useGameStore.getState().setPlayMode('openWorld')
+    useGameStore.getState().setScene('hub')
+    expect(useGameStore.getState().currentScene).toBe('hub')
+    expect(useGameStore.getState().gamePhase).toBe('playing')
+  })
+
+  it('routes to soccer-match scene when Soccer Match is selected', () => {
+    useGameStore.getState().setPlayMode('openWorld')
+    useGameStore.getState().setScene('soccer-match')
+    expect(useGameStore.getState().currentScene).toBe('soccer-match')
+    expect(useGameStore.getState().gamePhase).toBe('playing')
+  })
+
+  it('preserves openWorld playMode for both sub-selection targets', () => {
+    useGameStore.getState().setPlayMode('openWorld')
+    useGameStore.getState().setScene('hub')
+    expect(useGameStore.getState().playMode).toBe('openWorld')
+
+    useGameStore.getState().setScene('soccer-match')
+    expect(useGameStore.getState().playMode).toBe('openWorld')
+  })
+
+  it('does not set selectedGrade for openWorld mode', () => {
+    useGameStore.getState().setPlayMode('openWorld')
+    useGameStore.getState().setSelectedGrade(null)
+    useGameStore.getState().setScene('soccer-match')
+    expect(useGameStore.getState().selectedGrade).toBeNull()
+  })
+})
+
 describe('triggerQuiz behavior with playMode', () => {
   beforeEach(() => {
     useGameStore.setState({
